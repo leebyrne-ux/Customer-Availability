@@ -377,7 +377,7 @@ function doPost(e) {
 }
 
 let lastBoardSnapshot = '';
-async function silentSync() {
+async function silentSync() 
   if (!webhookUrl) return;
   try {
     const res = await fetch(`${webhookUrl}?t=${Date.now()}`);
