@@ -57,10 +57,12 @@
             <i data-lucide="mail-plus" class="w-4 h-4 text-blue-600"></i>
             1. Quick Auto-Fill from Email
           </h2>
-          <div class="flex items-center gap-2 text-[11px]">
-            <button type="button" onclick="loadSampleDFDS()" class="text-blue-600 hover:text-blue-800 font-medium underline">DFDS</button>
+          <div class="flex items-center gap-1.5 text-[11px]">
+            <button type="button" onclick="loadSamplePerennial()" class="text-blue-600 hover:text-blue-800 font-medium underline">Perennial</button>
             <span class="text-slate-300">|</span>
-            <button type="button" onclick="loadSampleIFS()" class="text-slate-500 hover:text-slate-800 underline">IFS</button>
+            <button type="button" onclick="loadSampleSeabridge()" class="text-slate-600 hover:text-slate-900 font-medium underline">Seabridge</button>
+            <span class="text-slate-300">|</span>
+            <button type="button" onclick="loadSampleDFDS()" class="text-slate-500 hover:text-slate-800 underline">DFDS</button>
             <span class="text-slate-300">|</span>
             <button type="button" onclick="clearIntake()" class="text-slate-400 hover:text-rose-600">Clear</button>
           </div>
@@ -98,7 +100,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 pb-4 border-b border-slate-100">
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">Customer *</label>
-            <input type="text" id="fieldCustomer" required placeholder="e.g. DFDS — Tony Cochrane"
+            <input type="text" id="fieldCustomer" required placeholder="e.g. Perennial Freight — Owen"
                    class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           <div>
@@ -402,13 +404,10 @@ function doPost(e) {
       return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
     }
 
-    // --- Clean Date & Timestamp Display Formatter ---
-    // Turns Google Sheets ISO strings like "2026-12-02T00:00:00.000Z" into clean "Wed 02/12/2026" (or "27/11/2026 09:39" when includeTime=true)
     function formatCleanDateDisplay(val, includeTime = false) {
       if (!val) return '';
       const str = String(val).trim();
 
-      // Match ISO timestamps from Google Sheets (e.g. 2026-12-02T00:00:00.000Z) or YYYY-MM-DD
       const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?Z?)?$/);
       if (isoMatch) {
         const d = new Date(str);
@@ -424,7 +423,6 @@ function doPost(e) {
           if (includeTime) {
             return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
           }
-          // If time is midnight (00:00), omit time and show clean weekday + DD/MM/YYYY
           if (hh === '00' && min === '00') {
             return `${shortDays[d.getDay()]} ${dd}/${mm}/${yyyy}`;
           }
@@ -432,7 +430,6 @@ function doPost(e) {
         }
       }
 
-      // Match "YYYY-MM-DD HH:mm" format
       const sqlMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
       if (sqlMatch) {
         return `${sqlMatch[3]}/${sqlMatch[2]}/${sqlMatch[1]} ${sqlMatch[4]}:${sqlMatch[5]}`;
@@ -592,7 +589,8 @@ function doPost(e) {
     // --- Location Cleaner ---
     function cleanLocationText(loc) {
       return String(loc || '')
-        .replace(/^(?:ex|from|collect(?:ing|ion)?\s+(?:from|in|at)|loading\s+(?:from|in|at)|deliver(?:ed|y|ing)?\s+(?:to|in|at)|tipping\s+(?:in|at)|to)\s+/i, '')
+        .replace(/^[:\-\s]+/, '')
+        .replace(/^(?:ex|from|collect(?:ing|ion)?\s+(?:from|in|at)|loading\s+(?:from|in|at)|deliver(?:ed|y|ing)?\s+(?:to|in|at)|tipping\s+(?:in|at)|to)\s*:?\s*/i, '')
         .replace(/\s+/g, ' ')
         .trim();
     }
@@ -620,10 +618,9 @@ function doPost(e) {
     }
 
     function parseFreightDateMs(dateStr, fallbackTimestampStr) {
-      if (!dateStr || /open|tbc|asap/i.test(dateStr)) return null;
+      if (!dateStr || /open|tbc|asap|yearly|202\d\s+rate/i.test(dateStr)) return null;
 
       const str = String(dateStr).trim();
-      // Handle ISO strings from Google Sheets (e.g., 2026-12-02T00:00:00.000Z)
       const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
       if (isoMatch) {
         return new Date(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10) - 1, parseInt(isoMatch[3], 10)).getTime();
@@ -881,7 +878,8 @@ function doPost(e) {
         'irishfreightsolutions.com': 'Irish Freight Solutions',
         'nationalseaways.com': 'National Seaways',
         'seabridge.ie': 'Seabridge',
-        'dfds.com': 'DFDS'
+        'dfds.com': 'DFDS',
+        'perennialfreight.com': 'Perennial Freight'
       };
 
       let company = '';
@@ -920,15 +918,19 @@ function doPost(e) {
         const trimmed = line.trim();
         if (/^_{5,}$/.test(trimmed)) break;
         if (/^(many\s+thanks|kind\s+regards|best\s+regards|regards|thanks\s+and\s+regards)[,.!]?$/i.test(trimmed)) break;
-        if (/^(contracts\s+manager|operations\s+manager|transport\s+planner|freight\s+forwarder|business\s+development|freight\s+management\s+dept)/i.test(trimmed)) break;
+        if (/^(thomas\s+reid|owen\s+mcloughlin|robbie\s+morris|karl\s+byrne|priscilla\s+quinn|tony\s+cochrane)$/i.test(trimmed)) break;
+        if (/^(contracts\s+manager|operations\s+manager|transport\s+planner|freight\s+forwarder|business\s+development|sales\s*&\s*forwarding|freight\s+management\s+dept)/i.test(trimmed)) break;
+        if (/^perennial\s+freight$/i.test(trimmed)) break;
+        if (/^seabridge/i.test(trimmed)) break;
         if (/^your\s+partner\s+for\s+moving\s+freight/i.test(trimmed)) break;
         if (/^if\s+you\s+have\s+received\s+this\s+email\s+from\s+me\s+outside/i.test(trimmed)) break;
         if (/^it\s+is\s+strictly\s+forbidden/i.test(trimmed)) break;
-        if (/^\*?\s*all\s+(business|services)\s+(is\s+conducted|provided|transacted)/i.test(trimmed)) break;
+        if (/^\*?\s*all\s+(business|services|goods)\s+(is\s+conducted|are\s+carried|provided|transacted)/i.test(trimmed)) break;
+        if (/^confidentiality:/i.test(trimmed)) break;
         if (/^p&o\s+ferrymasters\s+code\s+of\s+conduct/i.test(trimmed)) break;
         if (/^this\s+email\s+and\s+any\s+attachments/i.test(trimmed)) break;
-        if (/^(?:landline|mobile|tel|mob|t|m|e|w)[\s:]+(\+?\d|www\.|[a-z0-9._%+-]+@)/i.test(trimmed)) break;
-        if (/dublin\s*\d|swords\s+road|grand\s+canal|treasury\s+buil|westbank\s+road|belfast,\s*bt/i.test(trimmed)) break;
+        if (/^(?:phone|landline|mobile|tel|mob|t|m|e|w)[\s:]+(\+?\d|www\.|[a-z0-9._%+-]+@)/i.test(trimmed)) break;
+        if (/dublin\s*\d|swords\s+road|grand\s+canal|treasury\s+buil|westbank\s+road|belfast,\s*bt|taghmon/i.test(trimmed)) break;
         kept.push(line);
       }
       return kept.join('\n').trim();
@@ -1057,7 +1059,7 @@ function doPost(e) {
 
       for (const line of lines) {
         if (/^(hi|hello|dear|good\s+(morning|afternoon))\b/i.test(line)) continue;
-        if (/^(could\s+you\s+provide|we\s+have\s+these\s+loads|do\s+you\s+have\s+availability|can\s+you\s+(?:please\s+)?(?:quote|revert)|i\s+have\s+\d+\s+loads)/i.test(line)) continue;
+        if (/^(could\s+you\s+provide|we\s+have\s+these\s+loads|do\s+you\s+have\s+availability|can\s+you\s+(?:please\s+)?(?:advise|quote|revert)|i\s+have\s+\d+\s+loads)/i.test(line)) continue;
         if (/^(loading\s+from|delivery\s+to|rate)$/i.test(line)) continue;
 
         if (dateHeadingRegex.test(line)) {
@@ -1065,6 +1067,27 @@ function doPost(e) {
           continue;
         }
 
+        // Check for yearly / contract rate note (e.g. "yearly collection", "rate for 2027")
+        const yearRateMatch = line.match(/\b(yearly\s+collection|(?:rate\s+for\s+)?202[6-9])\b/i);
+        if (yearRateMatch && !proseColDate) {
+          proseColDate = yearRateMatch[1].trim();
+        }
+
+        // Standalone "Collect from Rotherham, S60 1TZ" line (Seabridge style)
+        const standaloneCollectMatch = line.match(/^collect(?:ing|ion)?\s+(?:from|at|in)\s*:?\s*(.+)$/i);
+        if (standaloneCollectMatch) {
+          proseOrigin = cleanLocationText(standaloneCollectMatch[1]);
+          continue;
+        }
+
+        // Standalone "Delivery to : Rakeevan, Co. Cavan A82H0X8" line (Seabridge style)
+        const standaloneDeliverMatch = line.match(/^deliver(?:y|ing)?\s+(?:to|at|in)\s*:?\s*(.+)$/i);
+        if (standaloneDeliverMatch) {
+          proseDest = cleanLocationText(standaloneDeliverMatch[1]);
+          continue;
+        }
+
+        // Inline Route + Schedule (DFDS style)
         const inlineSchedMatch = line.match(inlineRouteWithScheduleRegex);
         if (inlineSchedMatch && !/^delivery\s+to\b/i.test(line)) {
           const orig = cleanLocationText(inlineSchedMatch[1]);
@@ -1089,6 +1112,7 @@ function doPost(e) {
           continue;
         }
 
+        // Standard Route Offer line (IFS style)
         const rMatch = line.match(routeLineRegex);
         if (rMatch && !/full\s+loads\s*-\s*wire/i.test(line) && !/^delivery\s+to\b/i.test(line)) {
           const orig = cleanLocationText(rMatch[1]);
@@ -1106,6 +1130,7 @@ function doPost(e) {
           continue;
         }
 
+        // Prose Clues across sentences (National Seaways style)
         const relDateMatch = line.match(/\b((?:next|this)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|tomorrow|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\b/i);
         if (relDateMatch) {
           proseColDate = resolveRelativeDate(relDateMatch[1], rawDate);
@@ -1122,7 +1147,7 @@ function doPost(e) {
         }
       }
 
-      const globalFlags = detectHazFlags(bodyWithoutSig);
+      const globalFlags = detectHazFlags(bodyWithoutSig + ' ' + subject);
 
       if (extractedItems.length === 0 && (proseOrigin || proseDest)) {
         extractedItems.push({
@@ -1152,19 +1177,28 @@ function doPost(e) {
         });
       }
 
+      // Subject line fallback — supports multi-origin lists like "ex Birmingham, Manchester, Uxbridge & Warrington to Meath/Dublin"
       if (extractedItems.length === 0 && subject) {
-        const subjRoute = subject.match(/(?:ex|from)\s+([A-Za-z\s,]+?)\s+(?:to|->|–|-)\s+([A-Za-z\s,]+)/i);
+        const subjRoute = subject.match(/(?:ex|from)\s+(.+?)\s+(?:to|->|–|-)\s+([A-Za-z0-9\s,./'-]+)/i);
         if (subjRoute) {
-          const orig = cleanLocationText(subjRoute[1]);
-          extractedItems.push({
-            selected: true,
-            origin: orig,
-            destination: cleanLocationText(subjRoute[2]),
-            collectionDate: proseColDate || currentDateHeading || '',
-            deliveryDate: '',
-            isHaz: globalFlags.isHaz,
-            isLtdQty: globalFlags.isLtdQty,
-            region: detectOriginRegion(orig)
+          const rawOrigins = subjRoute[1].trim();
+          const dest = cleanLocationText(subjRoute[2]);
+          // Split by comma or "&" / "and" unless it's a single "Town, UK" pair
+          const splitOrigins = /\b(?:UK|NI|Ireland|ROI)\b/i.test(rawOrigins) && !rawOrigins.includes('&')
+            ? [rawOrigins]
+            : rawOrigins.split(/\s*(?:,|&|\band\b)\s*/i).map(s => cleanLocationText(s)).filter(Boolean);
+
+          splitOrigins.forEach(orig => {
+            extractedItems.push({
+              selected: true,
+              origin: orig,
+              destination: dest,
+              collectionDate: proseColDate || currentDateHeading || '',
+              deliveryDate: '',
+              isHaz: globalFlags.isHaz,
+              isLtdQty: globalFlags.isLtdQty,
+              region: detectOriginRegion(orig)
+            });
           });
         }
       }
@@ -1263,13 +1297,13 @@ function doPost(e) {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Loading From *</label>
-              <input type="text" value="${escapeHtml(item.origin)}" placeholder="e.g. Lutterworth or Cork"
+              <input type="text" value="${escapeHtml(item.origin)}" placeholder="e.g. Birmingham or Rotherham"
                      oninput="updateStagedField(${idx}, 'origin', this.value)"
                      class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
             </div>
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Delivery To *</label>
-              <input type="text" value="${escapeHtml(item.destination)}" placeholder="e.g. Rathcoole or Dublin"
+              <input type="text" value="${escapeHtml(item.destination)}" placeholder="e.g. Meath/Dublin or Cavan"
                      oninput="updateStagedField(${idx}, 'destination', this.value)"
                      class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
             </div>
@@ -1600,6 +1634,34 @@ function doPost(e) {
     }
 
     // Built-in Samples
+    function loadSamplePerennial() {
+      const sample = `From: Owen McLoughlin <Owen.McLoughlin@perennialfreight.com>
+Subject: [Bookings] Rate Request Full loads ex Birmingham, Manchester, Uxbridge & Warrington to Meath/Dublin
+Date: Fri, 27 Nov 2026 08:50:10 +0000
+
+Perennial Freight
+Owen McLoughlin`;
+      document.getElementById('rawEmailInput').value = sample;
+      parseEmailInput(sample);
+      showToast('Loaded Perennial Freight 4-origin sample');
+    }
+
+    function loadSampleSeabridge() {
+      const sample = `From: Thomas Reid <treid@seabridge.ie>
+Subject: [Bookings] Rotherham to Cavan
+Date: Thu, 26 Nov 2026 16:54:41 +0000
+
+Paula / Lee
+Can you advise the rate for 2027 for below
+This will be a yearly collection and approx. 70 loads of 700ml glass bottles.
+
+Collect from Rotherham, S60 1TZ
+Delivery to : Rakeevan, Co. Cavan A82H0X8`;
+      document.getElementById('rawEmailInput').value = sample;
+      parseEmailInput(sample);
+      showToast('Loaded Seabridge sample');
+    }
+
     function loadSampleDFDS() {
       const sample = `From: "'Tony Cochrane' via Bookings" <bookings@gogginstransport.ie>
 X-Original-From: Tony Cochrane <toncoch@dfds.com>
@@ -1618,24 +1680,6 @@ DE55 to Rathcoole collect 4th December AM delivery Monday (HAZ LOAD )`;
       document.getElementById('rawEmailInput').value = sample;
       parseEmailInput(sample);
       showToast('Loaded DFDS 2-load sample');
-    }
-
-    function loadSampleIFS() {
-      const sample = `From: Robbie Morris <Robbie@irishfreightsolutions.com>
-Subject: [Bookings] LOADS FOR IFS
-Date: Wed, 25 Nov 2026 16:13:42 +0000
-X-Original-Sender: robbie@irishfreightsolutions.com
-
-FRIDAY 29TH NOVEMBER
-BASILDON – ANNSBROUGH (CURTAIN/BOX)
-LLANIDOLES – CORK (HTL CURTAIN)
-GALWAY – BIRMINGHAM (CURTAIN)
-
-TUESDAY 2ND DECEMBER
-DUDLEY – DROMORE (BOX)`;
-      document.getElementById('rawEmailInput').value = sample;
-      parseEmailInput(sample);
-      showToast('Loaded IFS 4-load sample');
     }
   </script>
 </body>
