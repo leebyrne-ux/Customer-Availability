@@ -103,7 +103,7 @@
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">Offer Date *</label>
-            <input type="text" id="fieldOfferDate" required placeholder="YYYY-MM-DD HH:mm"
+            <input type="text" id="fieldOfferDate" required placeholder="DD/MM/YYYY HH:mm"
                    class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
         </div>
@@ -399,7 +399,46 @@ function doPost(e) {
     function getCurrentFormattedTimestamp() {
       const now = new Date();
       const pad = n => String(n).padStart(2, '0');
-      return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }
+
+    // --- Clean Date & Timestamp Display Formatter ---
+    // Turns Google Sheets ISO strings like "2026-12-02T00:00:00.000Z" into clean "Wed 02/12/2026" (or "27/11/2026 09:39" when includeTime=true)
+    function formatCleanDateDisplay(val, includeTime = false) {
+      if (!val) return '';
+      const str = String(val).trim();
+
+      // Match ISO timestamps from Google Sheets (e.g. 2026-12-02T00:00:00.000Z) or YYYY-MM-DD
+      const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?Z?)?$/);
+      if (isoMatch) {
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) {
+          const pad = n => String(n).padStart(2, '0');
+          const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          const dd = pad(d.getDate());
+          const mm = pad(d.getMonth() + 1);
+          const yyyy = d.getFullYear();
+          const hh = pad(d.getHours());
+          const min = pad(d.getMinutes());
+
+          if (includeTime) {
+            return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+          }
+          // If time is midnight (00:00), omit time and show clean weekday + DD/MM/YYYY
+          if (hh === '00' && min === '00') {
+            return `${shortDays[d.getDay()]} ${dd}/${mm}/${yyyy}`;
+          }
+          return `${shortDays[d.getDay()]} ${dd}/${mm}/${yyyy} ${hh}:${min}`;
+        }
+      }
+
+      // Match "YYYY-MM-DD HH:mm" format
+      const sqlMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
+      if (sqlMatch) {
+        return `${sqlMatch[3]}/${sqlMatch[2]}/${sqlMatch[1]} ${sqlMatch[4]}:${sqlMatch[5]}`;
+      }
+
+      return str;
     }
 
     // --- Next Working Day & UK/IRL Region Detection ---
@@ -439,7 +478,6 @@ function doPost(e) {
       const text = cleanLocationText(originStr).toUpperCase();
       if (!text) return 'UK';
 
-      // All-Ireland Map covers Republic of Ireland + Northern Ireland (including BT postcodes)
       const irlKeywords = [
         'DUBLIN', 'CORK', 'GALWAY', 'LIMERICK', 'WATERFORD', 'WEXFORD', 'WICKLOW',
         'KILDARE', 'MEATH', 'LOUTH', 'WESTMEATH', 'OFFALY', 'LAOIS', 'KILKENNY',
@@ -456,13 +494,8 @@ function doPost(e) {
       ];
       if (irlKeywords.some(k => text.includes(k))) return 'IRL';
 
-      // Irish Eircode pattern (e.g. X91 PX5V, D15, A92)
       if (/\b[ACDEFHKNPRTVWXY]\d{2}(?:\s*[0-9ACDEFHKNPRTVWXY]{4})?\b/.test(text)) return 'IRL';
-
-      // Northern Ireland BT postcode (e.g. BT36, BT3 9JL) -> All-Ireland Map
       if (/\bBT\d{1,2}(?:\s*\d[A-Z]{2})?\b/.test(text)) return 'IRL';
-
-      // Great Britain Postcode pattern (e.g. DE55, BD4 6SF, S1 2HH, M1) -> UK Map
       if (/\b[A-Z]{1,2}\d[A-Z\d]?\s*(?:\d[A-Z]{2})?\b/.test(text)) return 'UK';
 
       return 'UK';
@@ -589,9 +622,16 @@ function doPost(e) {
     function parseFreightDateMs(dateStr, fallbackTimestampStr) {
       if (!dateStr || /open|tbc|asap/i.test(dateStr)) return null;
 
-      const parenClean = dateStr.replace(/\([^)]*\)/g, '').trim();
+      const str = String(dateStr).trim();
+      // Handle ISO strings from Google Sheets (e.g., 2026-12-02T00:00:00.000Z)
+      const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) {
+        return new Date(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10) - 1, parseInt(isoMatch[3], 10)).getTime();
+      }
+
+      const parenClean = str.replace(/\([^)]*\)/g, '').trim();
       const directParsed = new Date(parenClean);
-      if (!isNaN(directParsed.getTime()) && /\d{4}/.test(parenClean)) {
+      if (!isNaN(directParsed.getTime()) && /\d{4}/.test(parenClean) && !/\d{1,2}\/\d{1,2}\/\d{4}/.test(parenClean)) {
         return new Date(directParsed.getFullYear(), directParsed.getMonth(), directParsed.getDate()).getTime();
       }
 
@@ -643,11 +683,11 @@ function doPost(e) {
         const colB = b.collectionDate || b.requestedDate || '';
         const msA = parseFreightDateMs(colA, a.offerDate);
         const msB = parseFreightDateMs(colB, b.offerDate);
-        if (msA === null && msB === null) return colA.localeCompare(colB) * mult;
+        if (msA === null && msB === null) return String(colA).localeCompare(String(colB)) * mult;
         if (msA === null) return 1;
         if (msB === null) return -1;
         if (msA !== msB) return (msA - msB) * mult;
-        return a.customer.localeCompare(b.customer);
+        return String(a.customer).localeCompare(String(b.customer));
       }
 
       if (field === 'offerDate') {
@@ -868,7 +908,7 @@ function doPost(e) {
       const parsed = new Date(rawDate);
       if (!isNaN(parsed.getTime())) {
         const pad = n => String(n).padStart(2, '0');
-        return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+        return `${pad(parsed.getDate())}/${pad(parsed.getMonth() + 1)}/${parsed.getFullYear()} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
       }
       return rawDate;
     }
@@ -1394,8 +1434,8 @@ function doPost(e) {
         .filter(l => {
           const matchesStatus = statusFilter === 'ALL' || l.status === statusFilter;
           const matchesNextDay = !filterNextWorkingDayOnly || isNextWorkingDayLoad(l);
-          const colStr = l.collectionDate || l.requestedDate || '';
-          const delStr = l.deliveryDate || '';
+          const colStr = formatCleanDateDisplay(l.collectionDate || l.requestedDate || '');
+          const delStr = formatCleanDateDisplay(l.deliveryDate || '');
           const text = `${l.customer} ${l.origin} ${l.destination} ${colStr} ${delStr} ${l.isHaz ? 'haz' : ''} ${l.isLtdQty ? 'ltd qty' : ''}`.toLowerCase();
           return matchesStatus && matchesNextDay && text.includes(query);
         })
@@ -1420,9 +1460,9 @@ function doPost(e) {
           'Expired': 'bg-slate-100 text-slate-500 border-slate-200'
         }[l.status] || 'bg-slate-100 text-slate-700';
 
-        const colDate = String(l.collectionDate || l.requestedDate || 'Open / TBC').replace(/\s*\(Rate Request\)/i, '');
-        const delDate = String(l.deliveryDate || '').trim();
-        const offerDt = l.offerDate || l.emailTimestamp || '';
+        const colDate = formatCleanDateDisplay(String(l.collectionDate || l.requestedDate || 'Open / TBC').replace(/\s*\(Rate Request\)/i, ''));
+        const delDate = formatCleanDateDisplay(String(l.deliveryDate || '').trim());
+        const offerDt = formatCleanDateDisplay(l.offerDate || l.emailTimestamp || '', true);
         const cleanOrig = cleanLocationText(l.origin);
         const cleanDest = cleanLocationText(l.destination);
         const reg = l.region || detectOriginRegion(cleanOrig);
@@ -1491,12 +1531,12 @@ function doPost(e) {
       const sorted = [...loads].sort(compareLoads);
       const headers = ['Offer Date', 'Customer', 'Loading From', 'Delivery To', 'Collection Date', 'Delivery Date', 'HAZ', 'Ltd Qty', 'Status', 'Region'];
       const rows = sorted.map(l => [
-        l.offerDate || l.emailTimestamp || '',
+        formatCleanDateDisplay(l.offerDate || l.emailTimestamp || '', true),
         l.customer,
         cleanLocationText(l.origin),
         cleanLocationText(l.destination),
-        l.collectionDate || l.requestedDate || '',
-        l.deliveryDate || '',
+        formatCleanDateDisplay(l.collectionDate || l.requestedDate || ''),
+        formatCleanDateDisplay(l.deliveryDate || ''),
         l.isHaz ? 'YES' : 'NO',
         l.isLtdQty ? 'YES' : 'NO',
         l.status,
