@@ -58,11 +58,11 @@
             1. Quick Auto-Fill from Email
           </h2>
           <div class="flex items-center gap-1.5 text-[11px]">
-            <button type="button" onclick="loadSampleUniroad()" class="text-blue-600 hover:text-blue-800 font-medium underline">Uniroad</button>
+            <button type="button" onclick="loadSampleAceExpress()" class="text-blue-600 hover:text-blue-800 font-medium underline">Ace</button>
+            <span class="text-slate-300">|</span>
+            <button type="button" onclick="loadSampleUniroad()" class="text-slate-600 hover:text-slate-900 font-medium underline">Uniroad</button>
             <span class="text-slate-300">|</span>
             <button type="button" onclick="loadSamplePerennial()" class="text-slate-600 hover:text-slate-900 font-medium underline">Perennial</button>
-            <span class="text-slate-300">|</span>
-            <button type="button" onclick="loadSampleDFDS()" class="text-slate-500 hover:text-slate-800 underline">DFDS</button>
             <span class="text-slate-300">|</span>
             <button type="button" onclick="clearIntake()" class="text-slate-400 hover:text-rose-600">Clear</button>
           </div>
@@ -100,7 +100,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 pb-4 border-b border-slate-100">
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">Customer *</label>
-            <input type="text" id="fieldCustomer" required placeholder="e.g. Ian - DSG"
+            <input type="text" id="fieldCustomer" required placeholder="e.g. Ace Express Freight — Alexander"
                    oninput="recheckStagedDuplicates()"
                    class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
@@ -880,7 +880,7 @@ function doPost(e) {
         }
       }
 
-      if (/^image\//i.test(contentType)) {
+      if (/^(?:image|application)\//i.test(contentType)) {
         return { html: '', plain: '', headers };
       }
 
@@ -933,7 +933,8 @@ function doPost(e) {
         'seabridge.ie': 'Seabridge',
         'dfds.com': 'DFDS',
         'perennialfreight.com': 'Perennial Freight',
-        'uniroadfreight.com': 'Uniroad Freight'
+        'uniroadfreight.com': 'Uniroad Freight',
+        'ace-express.com': 'Ace Express Freight'
       };
 
       let company = '';
@@ -973,12 +974,13 @@ function doPost(e) {
         if (/^_{5,}$/.test(trimmed)) break;
         if (/^(many\s+thanks|kind\s+regards|best\s+regards|regards|thanks\s+and\s+regards)[,.!]?$/i.test(trimmed)) continue;
         if (/^(thomas\s+reid|owen\s+mcloughlin|robbie\s+morris|karl\s+byrne|priscilla\s+quinn|tony\s+cochrane|gavin\s+behan|paula)$/i.test(trimmed)) continue;
-        if (/^(customer\s+service|contracts\s+manager|operations\s+manager|transport\s+planner|freight\s+forwarder|business\s+development|sales\s*&\s*forwarding|freight\s+management\s+dept)/i.test(trimmed)) continue;
-        if (/^(perennial\s+freight|seabridge|goggins\s+transport)/i.test(trimmed)) continue;
-        if (/^\*?\s*(?:introducing\s+our\s+new\s+website|all\s+loads\s+subject\s+to|week\s+\d+\s+surcharges|all\s+business\s+is\s+transacted|of\s+the\s+iifa|the\s+quotation\s+does\s+not\s+include|company\s+registration\s+no|all\s+goods\s+are\s+carried|these\s+conditions\s+shall|directors;|registered\s+office;|confidentiality:)/i.test(trimmed)) continue;
+        if (/^alexander\s+cleary/i.test(trimmed)) continue;
+        if (/^(customer\s+service|contracts\s+manager|operations\s+manager|transport\s+planner|freight\s+forwarder|business\s+development|sales\s*&\s*forwarding|freight\s+management\s+dept|planning\s*&\s*solution)/i.test(trimmed)) continue;
+        if (/^(perennial\s+freight|seabridge|goggins\s+transport|ace\s+express\s+freight)/i.test(trimmed)) continue;
+        if (/^\*?\s*(?:introducing\s+our\s+new\s+website|all\s+loads\s+subject\s+to|week\s+\d+\s+surcharges|all\s+business\s+is\s+transacted|of\s+the\s+iifa|the\s+quotation\s+does\s+not\s+include|company\s+registration\s+no|all\s+goods\s+are\s+carried|these\s+conditions\s+shall|directors;|registered\s+office;|registered:|confidentiality:|disclaimer:|find\s+or\s+check\s+eircode|to\s+view\s+our\s+terms)/i.test(trimmed)) continue;
         if (/^(?:fsc|lss\/ets|dpc)\s+/i.test(trimmed)) continue;
         if (/^(?:phone|landline|mobile|tel|fax|mob|t|m|e|w|head\s+office)[\s:]+(\+?\d|00\d|www\.|[a-z0-9._%+-]+@)/i.test(trimmed)) continue;
-        if (/unit\s+86\/90|baldoyle|rosemount\s+business\s+park|swords\s+road|grand\s+canal|treasury\s+buil|westbank\s+road|belfast,\s*bt|taghmon|cahervoley/i.test(trimmed)) continue;
+        if (/unit\s+86\/90|baldoyle|rosemount\s+business\s+park|swords\s+road|grand\s+canal|treasury\s+buil|westbank\s+road|belfast,\s*bt|taghmon|cahervoley|blakes\s+cross|lusk/i.test(trimmed)) continue;
         kept.push(line);
       }
       return kept.join('\n').trim();
@@ -1024,7 +1026,7 @@ function doPost(e) {
     function extractCleanLocationFromAddressBlock(blockLines) {
       const cleanedLines = blockLines
         .map(l => cleanLocationText(l))
-        .filter(l => l && !/^(?:uk|england|scotland|wales|ireland|roi|industrial\s+estate|business\s+park|trading\s+estate|yard|limited|ltd|plc)$/i.test(l));
+        .filter(l => l && !/^(?:collection|delivery|uk|england|scotland|wales|ireland|roi|industrial\s+estate|business\s+park|trading\s+estate|yard|limited|ltd|plc)$/i.test(l));
 
       if (cleanedLines.length === 0) return '';
       if (cleanedLines.length === 1) return cleanedLines[0];
@@ -1032,6 +1034,10 @@ function doPost(e) {
       const lastLine = cleanedLines[cleanedLines.length - 1];
       const prevLine = cleanedLines[cleanedLines.length - 2];
 
+      // If last line is just a postcode/Eircode (e.g., "IP21 4QH" or "A63 DR68"), include the company/town above it
+      if (/^(?:[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|[ACDEFHKNPRTVWXY]\d{2}\s*[0-9ACDEFHKNPRTVWXY]{4})$/i.test(lastLine) && prevLine) {
+        return `${prevLine}, ${lastLine}`;
+      }
       if (/^co\.?\s+/i.test(lastLine) && prevLine) {
         return `${prevLine}, ${lastLine}`;
       }
@@ -1140,18 +1146,22 @@ function doPost(e) {
           continue;
         }
 
-        if (/^ex[.:]\s+/i.test(line)) {
+        // Standalone "Collection:" / "Ex." block header (Ace Express / Uniroad style)
+        if (/^(?:collection\s*:|ex[.:]\s+)/i.test(line)) {
           activeAddrBlock = 'ex';
-          exBlockLines = [line];
+          const remainder = line.replace(/^(?:collection\s*:|ex[.:]\s+)/i, '').trim();
+          exBlockLines = remainder ? [remainder] : [];
           continue;
         }
-        if (/^to\s*:\s+/i.test(line)) {
+        // Standalone "Delivery:" / "To:" block header (Ace Express / Uniroad style)
+        if (/^(?:delivery\s*:|to\s*:)/i.test(line)) {
           activeAddrBlock = 'to';
-          toBlockLines = [line];
+          const remainder = line.replace(/^(?:delivery\s*:|to\s*:)/i, '').trim();
+          toBlockLines = remainder ? [remainder] : [];
           continue;
         }
         if (activeAddrBlock) {
-          if (/^(?:col\s*ref|goods|rate|delivery|collect|please|kind\s+regards)/i.test(line)) {
+          if (/^(?:col\s*ref|goods|rate|delivery|collection|collect|please|can\s+you|kind\s+regards)/i.test(line)) {
             activeAddrBlock = null;
           } else {
             if (activeAddrBlock === 'ex') exBlockLines.push(line);
@@ -1232,9 +1242,15 @@ function doPost(e) {
           proseDelDate = proseDelMatch[1].trim();
         }
 
-        const relDateMatch = line.match(/\b((?:next|this)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|tomorrow|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\b/i);
-        if (relDateMatch && !proseColDate) {
-          proseColDate = resolveRelativeDate(relDateMatch[1], rawDate);
+        // Prioritize explicit DD/MM dates (e.g., "Can you cover this load next week 02/12") before relative day names
+        const explicitSlashDateMatch = line.match(/\b(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\b/);
+        if (explicitSlashDateMatch && !proseColDate) {
+          proseColDate = explicitSlashDateMatch[1];
+        } else {
+          const relDateMatch = line.match(/\b((?:next|this)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|tomorrow)\b/i);
+          if (relDateMatch && !proseColDate) {
+            proseColDate = resolveRelativeDate(relDateMatch[1], rawDate);
+          }
         }
 
         const exMatch = line.match(/\b(?:ex|collect(?:ing|ion)?\s+(?:from|in|at)|loading\s+(?:from|in|at)|from)\s+([A-Za-z][A-Za-z0-9\s,.'-]{1,40}?)(?=\s+(?:for|to|deliver|tipping|on|next|this|$)|[.,;]|$)/i);
@@ -1433,19 +1449,19 @@ function doPost(e) {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Loading From *</label>
-              <input type="text" value="${escapeHtml(item.origin)}" placeholder="e.g. Ipswich IP1 5AN"
+              <input type="text" value="${escapeHtml(item.origin)}" placeholder="e.g. SMURFIT CORRUGATED UK, IP21 4QH"
                      oninput="updateStagedField(${idx}, 'origin', this.value)"
                      class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
             </div>
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Delivery To *</label>
-              <input type="text" value="${escapeHtml(item.destination)}" placeholder="e.g. Monkstown, Co. Cork"
+              <input type="text" value="${escapeHtml(item.destination)}" placeholder="e.g. Macfarlane Packaging Ireland, A63 DR68"
                      oninput="updateStagedField(${idx}, 'destination', this.value)"
                      class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
             </div>
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Collection Date</label>
-              <input type="text" value="${escapeHtml(item.collectionDate)}" placeholder="e.g. Tue 1 Dec 2026"
+              <input type="text" value="${escapeHtml(item.collectionDate)}" placeholder="e.g. 02/12"
                      oninput="updateStagedField(${idx}, 'collectionDate', this.value)"
                      class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-blue-900 focus:ring-1 focus:ring-blue-500 outline-none" />
             </div>
@@ -1806,6 +1822,27 @@ function doPost(e) {
       return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
     }
 
+    function loadSampleAceExpress() {
+      const sample = `From: Alexander Cleary <acleary@ace-express.com>
+Subject: [Bookings] ICR1124104 - FTL Ipswich to wicklow
+Date: Fri, 27 Nov 2026 11:00:39 +0000
+
+HI,
+
+Can you cover this load next week 02/12.
+
+Collection:
+SMURFIT CORRUGATED UK
+IP21 4QH
+
+Delivery:
+Macfarlane Packaging Ireland
+A63 DR68`;
+      document.getElementById('rawEmailInput').value = sample;
+      const dups = parseEmailInput(sample);
+      showToast(dups > 0 ? `Loaded Ace Express sample (${dups} already on board)` : 'Loaded Ace Express sample');
+    }
+
     function loadSampleUniroad() {
       const sample = `From: Gavin Behan <gavin@uniroadfreight.com>
 Subject: Re: [Bookings] Ipswich - 30/11 - (Ref: # 1034979)
@@ -1845,26 +1882,6 @@ Owen McLoughlin`;
       document.getElementById('rawEmailInput').value = sample;
       const dups = parseEmailInput(sample);
       showToast(dups > 0 ? `Loaded Perennial sample (${dups} already on board)` : 'Loaded Perennial Freight 4-origin sample');
-    }
-
-    function loadSampleDFDS() {
-      const sample = `From: "'Tony Cochrane' via Bookings" <bookings@gogginstransport.ie>
-X-Original-From: Tony Cochrane <toncoch@dfds.com>
-Subject: [Bookings] 2 loads next week
-Date: Thu, 26 Nov 2026 16:38:24 +0000
-
-Hi
-
-I have 2 loads next week let me know if you can do them and what you need now to stick your name against them
-
-Curtainsiders / offload from side
-
-DE55 to Rathcoole collect Monday 30th November delivery 2nd December
-
-DE55 to Rathcoole collect 4th December AM delivery Monday (HAZ LOAD )`;
-      document.getElementById('rawEmailInput').value = sample;
-      const dups = parseEmailInput(sample);
-      showToast(dups > 0 ? `Loaded DFDS sample (${dups} already on board)` : 'Loaded DFDS 2-load sample');
     }
   </script>
 </body>
