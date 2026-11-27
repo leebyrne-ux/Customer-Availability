@@ -1585,11 +1585,25 @@ function doPost(e) {
 
     async function deleteLoad(id) {
       loads = loads.filter(l => String(l.id) !== String(id));
-      lastBoardSnapshot = JSON.stringify(loads);
       saveLocal();
       renderBoard();
       recheckStagedDuplicates();
-      showToast('Deleted from board & Google Sheet');
+      showToast('Deleting from sheet...');
+
+      if (webhookUrl) {
+        try {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', id })
+          });
+          showToast('Deleted from team Google Sheet');
+        } catch (err) {
+          console.error('Delete sync error:', err);
+        }
+      }
+    }
 
       if (webhookUrl) {
         try {
