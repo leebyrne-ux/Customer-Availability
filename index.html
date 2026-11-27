@@ -370,10 +370,30 @@ function doPost(e) {
       document.getElementById('webhookUrlInput').value = webhookUrl;
       clearIntake();
       if (webhookUrl) {
-        refreshBoard();
-      } else {
+  refreshBoard();
+  setInterval(silentSync, 15000);
+} else {
+  renderBoard();
+}
+
+let lastBoardSnapshot = '';
+async function silentSync() {
+  if (!webhookUrl) return;
+  try {
+    const res = await fetch(`${webhookUrl}?t=${Date.now()}`);
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      const incoming = data.reverse();
+      const snap = JSON.stringify(incoming);
+      if (snap !== lastBoardSnapshot) {
+        lastBoardSnapshot = snap;
+        loads = incoming;
+        saveLocal();
         renderBoard();
       }
+    }
+  } catch (e) {}
+}}
     });
 
     function getCurrentFormattedTimestamp() {
