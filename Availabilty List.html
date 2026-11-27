@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backup Customer Loads — Intake & Board</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .drop-active {
+      border-color: #2563eb !important;
+      background-color: #eff6ff !important;
+    }
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-100/80 text-slate-800 min-h-screen font-sans">
+
+  <!-- Top Navigation -->
+  <header class="bg-slate-900 text-white shadow-md">
+    <div class="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-10 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-600 p-2 rounded-xl shadow-xs">
+          <i data-lucide="truck" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight">Backup Customer Loads</h1>
+          <p class="text-xs text-slate-400">Email Drop & Manual Offer Intake · Google Sheets & UK/IRL Map Sync</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <span id="syncStatusBadge" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          Google Sheet Connected
+        </span>
+        <button onclick="openSetupModal()" class="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-1.5 rounded-xl text-xs font-medium transition">
+          <i data-lucide="sheet" class="w-4 h-4 text-emerald-400"></i>
+          Google Sheets Setup
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Layout: Full-Width 4/8 Split -->
+  <main class="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-10 py-6 grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+
+    <!-- Left Column (4 cols): Compact Email Drop + Primary Manual/Verify Form -->
+    <section class="xl:col-span-4 space-y-4">
+
+      <!-- 1. Compact Email Drop Strip -->
+      <div class="bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4">
+        <div class="flex items-center justify-between mb-2.5">
+          <h2 class="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="mail-plus" class="w-4 h-4 text-blue-600"></i>
+            1. Quick Auto-Fill from Email
+          </h2>
+          <div class="flex items-center gap-2 text-[11px]">
+            <button type="button" onclick="loadSampleDFDS()" class="text-blue-600 hover:text-blue-800 font-medium underline">DFDS</button>
+            <span class="text-slate-300">|</span>
+            <button type="button" onclick="loadSampleIFS()" class="text-slate-500 hover:text-slate-800 underline">IFS</button>
+            <span class="text-slate-300">|</span>
+            <button type="button" onclick="clearIntake()" class="text-slate-400 hover:text-rose-600">Clear</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div id="dropZone"
+               class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-blue-500 hover:bg-slate-50 transition flex flex-col items-center justify-center"
+               onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" accept=".eml,.txt,.msg" class="hidden" onchange="handleFileSelect(event)" />
+            <i data-lucide="upload-cloud" class="w-5 h-5 text-blue-500 mb-1"></i>
+            <span class="text-xs font-medium text-slate-700">Drop <code class="bg-slate-100 px-1 rounded">.eml</code> file</span>
+          </div>
+
+          <textarea id="rawEmailInput" rows="2"
+                    placeholder="Or paste email text here..."
+                    oninput="parseEmailInput(this.value)"
+                    class="w-full rounded-xl border border-slate-300 px-2.5 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"></textarea>
+        </div>
+      </div>
+
+      <!-- 2. Manual Entry & Extracted Load Verification Card -->
+      <div class="bg-white rounded-2xl shadow-xs border border-slate-200/90 p-5">
+        <div class="flex items-center justify-between mb-3.5">
+          <h2 class="text-base font-semibold text-slate-900 flex items-center gap-2">
+            <i data-lucide="clipboard-edit" class="w-4 h-4 text-emerald-600"></i>
+            2. Load Offer Details (Manual / Verify)
+          </h2>
+          <span id="parseBadge" class="hidden text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-medium">
+            1 Load
+          </span>
+        </div>
+
+        <!-- Customer & Offer Date -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 pb-4 border-b border-slate-100">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Customer *</label>
+            <input type="text" id="fieldCustomer" required placeholder="e.g. DFDS — Tony Cochrane"
+                   class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Offer Date *</label>
+            <input type="text" id="fieldOfferDate" required placeholder="YYYY-MM-DD HH:mm"
+                   class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+        </div>
+
+        <!-- Dynamic Load Offer Cards (1 by default for instant manual entry) -->
+        <div class="flex items-center justify-between mb-2.5">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Load Route & Dates</span>
+          <button type="button" onclick="addEmptyStagedLoad()" class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Another Load
+          </button>
+        </div>
+
+        <div id="stagedLoadsContainer" class="space-y-3.5 max-h-[460px] overflow-y-auto pr-1">
+          <!-- Populated dynamically -->
+        </div>
+
+        <button type="button" onclick="commitStagedLoads()"
+                class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-xl text-sm shadow-xs transition flex items-center justify-center gap-2">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span id="submitBtnLabel">Add Load to Team Board</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Right Column (8 cols): Shared Team Load Board -->
+    <section class="xl:col-span-8 space-y-5">
+
+      <!-- Next Working Day Map Dispatch Bar -->
+      <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl shadow-xs p-5 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-400/30">
+              <i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i>
+              Next Working Day: <span id="nextWorkingDayLabel" class="text-white ml-1"></span>
+            </span>
+          </div>
+          <p class="text-xs text-slate-300 mt-1.5">Automatically pushes next-working-day collections (skipping weekends) into your live UK or All-Ireland Availability Map.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <button type="button" id="nextDayToggleBtn" onclick="toggleNextWorkingDayFilter()"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+            <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+            <span>Show Next Working Day Only</span>
+          </button>
+
+          <button type="button" onclick="pushAndOpenAvailabilityMap('UK')"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition shadow-xs">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+            <span>Push & Open UK Map (<span id="ukNextDayCount">0</span>)</span>
+          </button>
+
+          <button type="button" onclick="pushAndOpenAvailabilityMap('IRL')"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-xs">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+            <span>Push & Open IRL Map (<span id="irlNextDayCount">0</span>)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Load Board Table Card -->
+      <div class="bg-white rounded-2xl shadow-xs border border-slate-200/90 p-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
+          <div>
+            <h2 class="text-lg font-semibold text-slate-900">Team Backup Load Board</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Click any column header or use the sort menu to order chronologically or alphabetically</p>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <button onclick="refreshBoard()" title="Refresh from Google Sheet" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sync
+            </button>
+            <button onclick="exportCSV()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters & Sort Bar -->
+        <div class="flex flex-wrap items-center gap-3 mb-5">
+          <div class="relative flex-1 min-w-[240px]">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5"></i>
+            <input type="text" id="searchInput" oninput="renderBoard()" placeholder="Search customer, loading from, delivery to, dates..."
+                   class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          <select id="sortSelect" onchange="handleSortSelect(this.value)" class="rounded-xl border border-slate-300 px-3.5 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="collectionDate:asc" selected>Collection Date: Soonest First</option>
+            <option value="collectionDate:desc">Collection Date: Latest First</option>
+            <option value="offerDate:desc">Offer Date: Newest First</option>
+            <option value="offerDate:asc">Offer Date: Oldest First</option>
+            <option value="customer:asc">Customer: A &rarr; Z</option>
+            <option value="customer:desc">Customer: Z &rarr; A</option>
+            <option value="origin:asc">Loading From: A &rarr; Z</option>
+            <option value="destination:asc">Delivery To: A &rarr; Z</option>
+          </select>
+          <select id="statusFilter" onchange="renderBoard()" class="rounded-xl border border-slate-300 px-3.5 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="ALL">All Statuses</option>
+            <option value="Available" selected>Available Only</option>
+            <option value="Claimed">Claimed</option>
+            <option value="Expired">Expired</option>
+          </select>
+        </div>
+
+        <!-- Spacious Table -->
+        <div class="overflow-x-auto border border-slate-200 rounded-xl">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider font-semibold select-none">
+              <tr>
+                <th onclick="toggleSort('collectionDate')" class="px-4 py-3.5 text-left cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition w-[24%]">
+                  <div class="inline-flex items-center gap-1.5">
+                    <span>Collection / Delivery</span>
+                    <span id="sortIcon-collectionDate" class="text-blue-600"></span>
+                  </div>
+                </th>
+                <th onclick="toggleSort('customer')" class="px-4 py-3.5 text-left cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition w-[20%]">
+                  <div class="inline-flex items-center gap-1.5">
+                    <span>Customer</span>
+                    <span id="sortIcon-customer" class="text-blue-600"></span>
+                  </div>
+                  <span onclick="event.stopPropagation(); toggleSort('offerDate')" class="block text-[10px] font-normal lowercase tracking-normal text-slate-400 hover:text-blue-600 mt-0.5">
+                    sort by offer date <span id="sortIcon-offerDate"></span>
+                  </span>
+                </th>
+                <th onclick="toggleSort('origin')" class="px-4 py-3.5 text-left cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition w-[19%]">
+                  <div class="inline-flex items-center gap-1.5">
+                    <span>Loading From</span>
+                    <span id="sortIcon-origin" class="text-blue-600"></span>
+                  </div>
+                </th>
+                <th onclick="toggleSort('destination')" class="px-4 py-3.5 text-left cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition w-[19%]">
+                  <div class="inline-flex items-center gap-1.5">
+                    <span>Delivery To</span>
+                    <span id="sortIcon-destination" class="text-blue-600"></span>
+                  </div>
+                </th>
+                <th onclick="toggleSort('status')" class="px-4 py-3.5 text-left cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition w-[9%]">
+                  <div class="inline-flex items-center gap-1.5">
+                    <span>Status</span>
+                    <span id="sortIcon-status" class="text-blue-600"></span>
+                  </div>
+                </th>
+                <th class="px-4 py-3.5 text-right w-[9%]">Action</th>
+              </tr>
+            </thead>
+            <tbody id="loadsTableBody" class="divide-y divide-slate-100 bg-white">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Google Sheets Setup Modal -->
+  <div id="setupModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <h3 class="font-semibold text-base flex items-center gap-2">
+          <i data-lucide="sheet" class="w-5 h-5 text-emerald-400"></i>
+          Google Sheet Web App Connection
+        </h3>
+        <button onclick="closeSetupModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto text-sm text-slate-600">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900">
+          <strong>Important:</strong> Make sure your Apps Script Web App deployment has <strong>Who has access</strong> set to <strong>Anyone</strong> (not just <em>Anyone within gogginstransport.ie</em>) so GitHub Pages can read and write rows without a login block. Also ensure your <code>Code.gs</code> matches the 11-column script below:
+        </div>
+
+        <div class="relative">
+          <button onclick="copyAppsScript()" class="absolute right-2 top-2 bg-slate-700 hover:bg-slate-600 text-white text-xs px-2.5 py-1 rounded">
+            Copy Script
+          </button>
+          <pre id="appsScriptCode" class="bg-slate-900 text-emerald-300 p-3 rounded-lg text-xs overflow-x-auto font-mono">function doGet(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+  const data = rows.slice(1).map(r => ({
+    id: r[0],
+    offerDate: r[1],
+    customer: r[2],
+    origin: r[3],
+    destination: r[4],
+    collectionDate: r[5],
+    deliveryDate: r[6],
+    isHaz: Boolean(r[7]),
+    isLtdQty: Boolean(r[8]),
+    status: r[9] || 'Available',
+    region: r[10] || ''
+  }));
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['ID', 'Offer Date', 'Customer', 'Loading From', 'Delivery To', 'Collection Date', 'Delivery Date', 'HAZ', 'Ltd Qty', 'Status', 'Region']);
+  }
+  const payload = JSON.parse(e.postData.contents);
+  if (payload.action === 'add') {
+    const items = Array.isArray(payload.loads) ? payload.loads : [payload.load];
+    items.forEach(l => {
+      sheet.appendRow([l.id, l.offerDate, l.customer, l.origin, l.destination, l.collectionDate, l.deliveryDate, l.isHaz ? 'YES' : '', l.isLtdQty ? 'YES' : '', l.status, l.region || '']);
+    });
+  } else if (payload.action === 'updateStatus') {
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]) === String(payload.id)) {
+        sheet.getRange(i + 1, 10).setValue(payload.status);
+        break;
+      }
+    }
+  }
+  return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
+}</pre>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Google Apps Script Web App URL</label>
+          <input type="url" id="webhookUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
+                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="closeSetupModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50">Cancel</button>
+          <button onclick="saveWebhookUrl()" class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Save Connection</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium hidden items-center gap-2 z-50">
+    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toastMsg">Saved!</span>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'backup_customer_loads_v3';
+    const WEBHOOK_KEY = 'backup_loads_sheet_webhook_v3';
+    const DEFAULT_WEBHOOK_URL = 'https://script.google.com/a/macros/gogginstransport.ie/s/AKfycbyUO9fwgsQ8kmk_p_t_VTwmGwWwDyFN_1rDTaGlCEJfyK2rV7Lui-1GtFMiPZEJ1EaP/exec';
+
+    // Direct Firebase Realtime DB endpoints for both Availability Maps
+    const FIREBASE_ENDPOINTS = {
+      UK: 'https://uk-transport-availability-default-rtdb.europe-west1.firebasedatabase.app/board.json',
+      IRL: 'https://all-ireland-board-default-rtdb.europe-west1.firebasedatabase.app/ireland-board.json'
+    };
+
+    const MAP_URLS = {
+      UK: 'https://leebyrne-ux.github.io/UK-Availability-Map/',
+      IRL: 'https://leebyrne-ux.github.io/Irl-Availability-Map/'
+    };
+
+    let loads = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    let webhookUrl = localStorage.getItem(WEBHOOK_KEY) || DEFAULT_WEBHOOK_URL;
+    let stagedLoads = [];
+    let currentSort = { field: 'collectionDate', dir: 'asc' };
+    let filterNextWorkingDayOnly = false;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      updateSyncBadge();
+      updateNextWorkingDayHeader();
+      document.getElementById('webhookUrlInput').value = webhookUrl;
+      clearIntake();
+      if (webhookUrl) {
+        refreshBoard();
+      } else {
+        renderBoard();
+      }
+    });
+
+    function getCurrentFormattedTimestamp() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }
+
+    // --- Next Working Day & UK/IRL Region Detection ---
+    function getNextWorkingDay(refDate = new Date()) {
+      const d = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate());
+      const day = d.getDay(); // 0=Sun, 5=Fri, 6=Sat
+      if (day === 5) {
+        d.setDate(d.getDate() + 3); // Fri -> Mon
+      } else if (day === 6) {
+        d.setDate(d.getDate() + 2); // Sat -> Mon
+      } else {
+        d.setDate(d.getDate() + 1); // Sun-Thu -> Next Day
+      }
+      return d;
+    }
+
+    function updateNextWorkingDayHeader() {
+      const nwd = getNextWorkingDay();
+      const label = nwd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      document.getElementById('nextWorkingDayLabel').textContent = label;
+    }
+
+    function isNextWorkingDayLoad(load) {
+      const colStr = load.collectionDate || load.requestedDate || '';
+      const ms = parseFreightDateMs(colStr, load.offerDate || load.emailTimestamp);
+      if (ms === null) return false;
+      const loadDate = new Date(ms);
+      const nwd = getNextWorkingDay();
+      return (
+        loadDate.getFullYear() === nwd.getFullYear() &&
+        loadDate.getMonth() === nwd.getMonth() &&
+        loadDate.getDate() === nwd.getDate()
+      );
+    }
+
+    function detectOriginRegion(originStr) {
+      const text = cleanLocationText(originStr).toUpperCase();
+      if (!text) return 'UK';
+
+      // All-Ireland Map covers Republic of Ireland + Northern Ireland (including BT postcodes)
+      const irlKeywords = [
+        'DUBLIN', 'CORK', 'GALWAY', 'LIMERICK', 'WATERFORD', 'WEXFORD', 'WICKLOW',
+        'KILDARE', 'MEATH', 'LOUTH', 'WESTMEATH', 'OFFALY', 'LAOIS', 'KILKENNY',
+        'CARLOW', 'TIPPERARY', 'CLARE', 'KERRY', 'MAYO', 'SLIGO', 'LEITRIM',
+        'ROSCOMMON', 'LONGFORD', 'CAVAN', 'MONAGHAN', 'DONEGAL', 'RATHCOOLE',
+        'DUNDALK', 'DROGHEDA', 'NAAS', 'ATHLONE', 'ENNIS', 'TRALEE', 'KILLARNEY',
+        'SHANNON', 'ROSSLARE', 'IRELAND', 'ROI', 'EIRE', 'TOURMAKEADY', 'TOURMAKEDAY',
+        'BELFAST', 'ANNSBROUGH', 'DROMORE', 'NEWRY', 'DERRY', 'LONDONDERRY',
+        'LARNE', 'WARRENPOINT', 'LISBURN', 'CRAIGAVON', 'PORTADOWN', 'LURGAN',
+        'ARMAGH', 'BANGOR', 'NEWTOWNARDS', 'DOWNPATRICK', 'BANBRIDGE', 'ANTRIM',
+        'BALLYMENA', 'NEWTOWNABBEY', 'CARRICKFERGUS', 'COLERAINE', 'MAGHERAFELT',
+        'OMAGH', 'DUNGANNON', 'COOKSTOWN', 'STRABANE', 'TYRONE', 'ENNISKILLEN', 'FERMANAGH',
+        'MALLUSK', 'DUNCRUE', 'CITYWEST', 'GREENOGUE', 'DAMASTOWN', 'BALLYMOUNT', 'RINGASKIDDY', 'FOYNES', 'BELVIEW'
+      ];
+      if (irlKeywords.some(k => text.includes(k))) return 'IRL';
+
+      // Irish Eircode pattern (e.g. X91 PX5V, D15, A92)
+      if (/\b[ACDEFHKNPRTVWXY]\d{2}(?:\s*[0-9ACDEFHKNPRTVWXY]{4})?\b/.test(text)) return 'IRL';
+
+      // Northern Ireland BT postcode (e.g. BT36, BT3 9JL) -> All-Ireland Map
+      if (/\bBT\d{1,2}(?:\s*\d[A-Z]{2})?\b/.test(text)) return 'IRL';
+
+      // Great Britain Postcode pattern (e.g. DE55, BD4 6SF, S1 2HH, M1) -> UK Map
+      if (/\b[A-Z]{1,2}\d[A-Z\d]?\s*(?:\d[A-Z]{2})?\b/.test(text)) return 'UK';
+
+      return 'UK';
+    }
+
+    function toggleRegion(id) {
+      const idx = loads.findIndex(l => String(l.id) === String(id));
+      if (idx === -1) return;
+      const current = loads[idx].region || detectOriginRegion(loads[idx].origin);
+      loads[idx].region = current === 'UK' ? 'IRL' : 'UK';
+      saveLocal();
+      renderBoard();
+    }
+
+    function toggleNextWorkingDayFilter() {
+      filterNextWorkingDayOnly = !filterNextWorkingDayOnly;
+      const btn = document.getElementById('nextDayToggleBtn');
+      if (filterNextWorkingDayOnly) {
+        btn.className = 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-blue-400 bg-blue-600 text-white transition shadow-xs';
+        btn.innerHTML = '<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i><span>Showing Next Working Day</span>';
+      } else {
+        btn.className = 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200 transition';
+        btn.innerHTML = '<i data-lucide="filter" class="w-3.5 h-3.5"></i><span>Show Next Working Day Only</span>';
+      }
+      lucide.createIcons();
+      renderBoard();
+    }
+
+    function updateNextDayMapCounts() {
+      const nextDayLoads = loads.filter(l => l.status === 'Available' && isNextWorkingDayLoad(l));
+      const ukCount = nextDayLoads.filter(l => (l.region || detectOriginRegion(l.origin)) === 'UK').length;
+      const irlCount = nextDayLoads.filter(l => (l.region || detectOriginRegion(l.origin)) === 'IRL').length;
+      document.getElementById('ukNextDayCount').textContent = ukCount;
+      document.getElementById('irlNextDayCount').textContent = irlCount;
+    }
+
+    // --- Direct Firebase Push to UK & All-Ireland Availability Maps ---
+    async function pushAndOpenAvailabilityMap(region) {
+      const nextDayLoads = loads.filter(l =>
+        l.status === 'Available' &&
+        isNextWorkingDayLoad(l) &&
+        (l.region || detectOriginRegion(l.origin)) === region
+      );
+
+      if (nextDayLoads.length === 0) {
+        showToast(`No available ${region} collections found for the next working day.`);
+        return;
+      }
+
+      const endpoint = FIREBASE_ENDPOINTS[region];
+      const mapLabel = region === 'UK' ? 'UK Availability Map' : 'All-Ireland Board';
+
+      try {
+        showToast(`Pushing loads to ${mapLabel}...`);
+        const res = await fetch(`${endpoint}?t=${Date.now()}`);
+        const boardData = (await res.json()) || {};
+        const existingLoadsStr = (boardData.loads || '').trim();
+        const existingItems = existingLoadsStr
+          ? existingLoadsStr.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean)
+          : [];
+
+        // Format each load for your map parser (e.g., "Lutterworth", "DE55 Haz", "Galway", "X91 PX5V Haz")
+        const newEntries = nextDayLoads.map(l => {
+          const loc = cleanLocationText(l.origin);
+          return l.isHaz ? `${loc} Haz` : loc;
+        });
+
+        const mergedItems = [...existingItems];
+        newEntries.forEach(entry => {
+          if (!mergedItems.some(e => e.toLowerCase() === entry.toLowerCase())) {
+            mergedItems.push(entry);
+          }
+        });
+
+        const updatedLoadsField = mergedItems.join(', ');
+
+        await fetch(endpoint, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            loads: updatedLoadsField,
+            updated: Date.now()
+          })
+        });
+
+        showToast(`Pushed ${newEntries.length} load${newEntries.length > 1 ? 's' : ''} to ${mapLabel}!`);
+        window.open(MAP_URLS[region], '_blank');
+      } catch (err) {
+        console.error(`${region} Firebase push error:`, err);
+        showToast(`Opened ${mapLabel} (check Firebase rules if not auto-listed).`);
+        window.open(MAP_URLS[region], '_blank');
+      }
+    }
+
+    // --- Location Cleaner ---
+    function cleanLocationText(loc) {
+      return String(loc || '')
+        .replace(/^(?:ex|from|collect(?:ing|ion)?\s+(?:from|in|at)|loading\s+(?:from|in|at)|deliver(?:ed|y|ing)?\s+(?:to|in|at)|tipping\s+(?:in|at)|to)\s+/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // --- Sorting Logic ---
+    function toggleSort(field) {
+      if (currentSort.field === field) {
+        currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.field = field;
+        currentSort.dir = field === 'offerDate' ? 'desc' : 'asc';
+      }
+      const selectEl = document.getElementById('sortSelect');
+      const combo = `${currentSort.field}:${currentSort.dir}`;
+      if ([...selectEl.options].some(o => o.value === combo)) {
+        selectEl.value = combo;
+      }
+      renderBoard();
+    }
+
+    function handleSortSelect(val) {
+      const [field, dir] = val.split(':');
+      currentSort = { field, dir };
+      renderBoard();
+    }
+
+    function parseFreightDateMs(dateStr, fallbackTimestampStr) {
+      if (!dateStr || /open|tbc|asap/i.test(dateStr)) return null;
+
+      const parenClean = dateStr.replace(/\([^)]*\)/g, '').trim();
+      const directParsed = new Date(parenClean);
+      if (!isNaN(directParsed.getTime()) && /\d{4}/.test(parenClean)) {
+        return new Date(directParsed.getFullYear(), directParsed.getMonth(), directParsed.getDate()).getTime();
+      }
+
+      let refYear = new Date().getFullYear();
+      let refMonth = new Date().getMonth();
+      if (fallbackTimestampStr) {
+        const refD = new Date(fallbackTimestampStr);
+        if (!isNaN(refD.getTime())) {
+          refYear = refD.getFullYear();
+          refMonth = refD.getMonth();
+        }
+      }
+
+      const months = {
+        jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+        apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+        aug: 7, august: 7, sep: 8, sept: 8, september: 8,
+        oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11
+      };
+      const wordMatch = parenClean.match(/(\d{1,2})(?:st|nd|rd|th)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s+(\d{4}))?/i);
+      if (wordMatch) {
+        const day = parseInt(wordMatch[1], 10);
+        const month = months[wordMatch[2].toLowerCase()];
+        let year = wordMatch[3] ? parseInt(wordMatch[3], 10) : refYear;
+        if (!wordMatch[3] && refMonth >= 10 && month <= 1) {
+          year += 1;
+        }
+        return new Date(year, month, day).getTime();
+      }
+
+      const slashMatch = parenClean.match(/(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?/);
+      if (slashMatch) {
+        const day = parseInt(slashMatch[1], 10);
+        const month = parseInt(slashMatch[2], 10) - 1;
+        let year = slashMatch[3] ? parseInt(slashMatch[3], 10) : refYear;
+        if (year < 100) year += 2000;
+        return new Date(year, month, day).getTime();
+      }
+
+      return null;
+    }
+
+    function compareLoads(a, b) {
+      const { field, dir } = currentSort;
+      const mult = dir === 'asc' ? 1 : -1;
+
+      if (field === 'collectionDate') {
+        const colA = a.collectionDate || a.requestedDate || '';
+        const colB = b.collectionDate || b.requestedDate || '';
+        const msA = parseFreightDateMs(colA, a.offerDate);
+        const msB = parseFreightDateMs(colB, b.offerDate);
+        if (msA === null && msB === null) return colA.localeCompare(colB) * mult;
+        if (msA === null) return 1;
+        if (msB === null) return -1;
+        if (msA !== msB) return (msA - msB) * mult;
+        return a.customer.localeCompare(b.customer);
+      }
+
+      if (field === 'offerDate') {
+        const tA = new Date(a.offerDate || a.emailTimestamp).getTime() || 0;
+        const tB = new Date(b.offerDate || b.emailTimestamp).getTime() || 0;
+        return (tA - tB) * mult;
+      }
+
+      const valA = cleanLocationText(a[field] || '').toLowerCase();
+      const valB = cleanLocationText(b[field] || '').toLowerCase();
+      return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' }) * mult;
+    }
+
+    function updateSortIcons() {
+      const fields = ['collectionDate', 'customer', 'offerDate', 'origin', 'destination', 'status'];
+      fields.forEach(f => {
+        const el = document.getElementById(`sortIcon-${f}`);
+        if (!el) return;
+        if (currentSort.field === f) {
+          el.textContent = currentSort.dir === 'asc' ? '▲' : '▼';
+        } else {
+          el.textContent = '';
+        }
+      });
+    }
+
+    // --- Drag & Drop Listeners ---
+    const dropZone = document.getElementById('dropZone');
+    ['dragenter', 'dragover'].forEach(evt => {
+      dropZone.addEventListener(evt, e => {
+        e.preventDefault();
+        dropZone.classList.add('drop-active');
+      });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      dropZone.addEventListener(evt, e => {
+        e.preventDefault();
+        dropZone.classList.remove('drop-active');
+      });
+    });
+    dropZone.addEventListener('drop', e => {
+      const file = e.dataTransfer.files[0];
+      if (file) readEmailFile(file);
+    });
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) readEmailFile(file);
+    }
+
+    function readEmailFile(file) {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const content = ev.target.result;
+        document.getElementById('rawEmailInput').value = content;
+        parseEmailInput(content);
+        showToast(`Parsed "${file.name}"`);
+      };
+      reader.readAsText(file);
+    }
+
+    // --- MIME & Encoding Helpers ---
+    function decodeQuotedPrintable(str) {
+      if (!str) return '';
+      let cleaned = str.replace(/=\r?\n/g, '');
+      const bytes = [];
+      for (let i = 0; i < cleaned.length; i++) {
+        if (cleaned[i] === '=' && /^[0-9A-Fa-f]{2}$/.test(cleaned.substr(i + 1, 2))) {
+          bytes.push(parseInt(cleaned.substr(i + 1, 2), 16));
+          i += 2;
+        } else {
+          bytes.push(cleaned.charCodeAt(i));
+        }
+      }
+      try {
+        return new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+      } catch {
+        return new TextDecoder('iso-8859-1').decode(new Uint8Array(bytes));
+      }
+    }
+
+    function decodeBase64Unicode(str) {
+      try {
+        const clean = str.replace(/\s+/g, '');
+        const binary = atob(clean);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new TextDecoder('utf-8').decode(bytes);
+      } catch {
+        try { return atob(str.replace(/\s+/g, '')); } catch { return str; }
+      }
+    }
+
+    function decodeHeaderWord(str) {
+      if (!str) return '';
+      return str.replace(/=\?([^?]+)\?([BQ])\?([^?]+)\?=/gi, (_, charset, enc, text) => {
+        if (enc.toUpperCase() === 'B') return decodeBase64Unicode(text);
+        return decodeQuotedPrintable(text.replace(/_/g, ' '));
+      });
+    }
+
+    function parseMimePart(rawPart) {
+      const splitIdx = rawPart.search(/\r?\n\r?\n/);
+      if (splitIdx === -1) return { headers: {}, body: rawPart };
+      const rawHeaders = rawPart.slice(0, splitIdx);
+      const body = rawPart.slice(splitIdx).replace(/^\r?\n\r?\n/, '');
+      const unfolded = rawHeaders.replace(/\r?\n[ \t]+/g, ' ');
+      const headers = {};
+      unfolded.split(/\r?\n/).forEach(line => {
+        const colon = line.indexOf(':');
+        if (colon > -1) {
+          const key = line.slice(0, colon).trim().toLowerCase();
+          const val = decodeHeaderWord(line.slice(colon + 1).trim());
+          if (!headers[key]) headers[key] = val;
+        }
+      });
+      return { headers, body };
+    }
+
+    function extractTextFromMime(raw) {
+      const { headers, body } = parseMimePart(raw);
+      const contentType = headers['content-type'] || '';
+      const transferEnc = (headers['content-transfer-encoding'] || '').toLowerCase();
+
+      if (/multipart\//i.test(contentType)) {
+        const bMatch = contentType.match(/boundary="?([^";]+)"?/i);
+        if (bMatch) {
+          const boundary = bMatch[1];
+          const escapedBoundary = boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const parts = body.split(new RegExp('--' + escapedBoundary + '(?:--)?\\s*\\r?\\n?'));
+          let htmlContent = '';
+          let plainContent = '';
+          for (const part of parts) {
+            if (!part.trim() || part.trim() === '--') continue;
+            const res = extractTextFromMime(part);
+            if (res.html) htmlContent += '\n' + res.html;
+            if (res.plain) plainContent += '\n' + res.plain;
+          }
+          return { html: htmlContent.trim(), plain: plainContent.trim(), headers };
+        }
+      }
+
+      if (/^image\//i.test(contentType)) {
+        return { html: '', plain: '', headers };
+      }
+
+      let decodedBody = body;
+      if (transferEnc.includes('quoted-printable')) {
+        decodedBody = decodeQuotedPrintable(body);
+      } else if (transferEnc.includes('base64')) {
+        decodedBody = decodeBase64Unicode(body);
+      }
+
+      if (/text\/html/i.test(contentType)) {
+        return { html: decodedBody, plain: '', headers };
+      }
+      return { html: '', plain: decodedBody, headers };
+    }
+
+    function resolveCustomerName(headers) {
+      const candidates = [
+        headers['x-original-from'],
+        headers['x-original-sender'],
+        headers['reply-to'],
+        headers['from']
+      ].filter(Boolean);
+
+      let chosen = candidates[0] || '';
+      if (/bookings@gogginstransport\.ie/i.test(chosen) && candidates.length > 1) {
+        chosen = candidates.find(c => !/bookings@gogginstransport\.ie/i.test(c)) || chosen;
+      }
+
+      if (!chosen) return '';
+
+      const emailMatch = chosen.match(/<([^>]+)>/) || chosen.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+      const emailAddr = emailMatch ? emailMatch[1].toLowerCase() : '';
+      let personName = chosen.replace(/<[^>]+>/g, '').replace(/["']/g, '').replace(/\s*via\s+Bookings/i, '').trim();
+      if (personName.includes(',')) {
+        const [last, first] = personName.split(',').map(s => s.trim());
+        if (first && last) personName = `${first} ${last}`;
+      }
+      if (!personName || personName.includes('@')) {
+        const localPart = emailAddr.split('@')[0] || '';
+        personName = localPart.split(/[._-]/).map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ');
+      }
+
+      const domainMap = {
+        'dpworld.com': 'DP World',
+        'poferrymasters.com': 'DP World / P&O Ferrymasters',
+        'cldn.com': 'CLdN',
+        'irishfreightsolutions.com': 'Irish Freight Solutions',
+        'nationalseaways.com': 'National Seaways',
+        'seabridge.ie': 'Seabridge',
+        'dfds.com': 'DFDS'
+      };
+
+      let company = '';
+      if (emailAddr) {
+        const domain = emailAddr.split('@')[1] || '';
+        if (domainMap[domain]) {
+          company = domainMap[domain];
+        } else {
+          const root = domain.split('.')[0] || '';
+          if (root && !['gmail', 'outlook', 'hotmail', 'yahoo'].includes(root)) {
+            company = root.toUpperCase().length <= 4 ? root.toUpperCase() : root.charAt(0).toUpperCase() + root.slice(1);
+          }
+        }
+      }
+
+      if (company && personName && company.toLowerCase() !== personName.toLowerCase()) {
+        return `${company} — ${personName}`;
+      }
+      return company || personName || emailAddr;
+    }
+
+    function formatEmailTimestamp(rawDate) {
+      if (!rawDate) return getCurrentFormattedTimestamp();
+      const parsed = new Date(rawDate);
+      if (!isNaN(parsed.getTime())) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+      }
+      return rawDate;
+    }
+
+    function stripSignatureAndDisclaimer(text) {
+      const lines = text.split(/\r?\n/);
+      const kept = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (/^_{5,}$/.test(trimmed)) break;
+        if (/^(many\s+thanks|kind\s+regards|best\s+regards|regards|thanks\s+and\s+regards)[,.!]?$/i.test(trimmed)) break;
+        if (/^(contracts\s+manager|operations\s+manager|transport\s+planner|freight\s+forwarder|business\s+development|freight\s+management\s+dept)/i.test(trimmed)) break;
+        if (/^your\s+partner\s+for\s+moving\s+freight/i.test(trimmed)) break;
+        if (/^if\s+you\s+have\s+received\s+this\s+email\s+from\s+me\s+outside/i.test(trimmed)) break;
+        if (/^it\s+is\s+strictly\s+forbidden/i.test(trimmed)) break;
+        if (/^\*?\s*all\s+(business|services)\s+(is\s+conducted|provided|transacted)/i.test(trimmed)) break;
+        if (/^p&o\s+ferrymasters\s+code\s+of\s+conduct/i.test(trimmed)) break;
+        if (/^this\s+email\s+and\s+any\s+attachments/i.test(trimmed)) break;
+        if (/^(?:landline|mobile|tel|mob|t|m|e|w)[\s:]+(\+?\d|www\.|[a-z0-9._%+-]+@)/i.test(trimmed)) break;
+        if (/dublin\s*\d|swords\s+road|grand\s+canal|treasury\s+buil|westbank\s+road|belfast,\s*bt/i.test(trimmed)) break;
+        kept.push(line);
+      }
+      return kept.join('\n').trim();
+    }
+
+    function resolveRelativeDate(phrase, emailDateStr) {
+      if (!phrase) return '';
+      const base = new Date(emailDateStr);
+      if (isNaN(base.getTime())) return phrase;
+
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      const lower = phrase.toLowerCase().trim();
+      if (lower === 'tomorrow') {
+        const d = new Date(base);
+        d.setDate(d.getDate() + 1);
+        return `${shortDays[d.getDay()]} ${d.getDate()} ${shortMonths[d.getMonth()]} ${d.getFullYear()} (${phrase})`;
+      }
+
+      const dayMatch = lower.match(/\b(next|this)?\s*(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
+      if (dayMatch) {
+        const targetIdx = dayNames.indexOf(dayMatch[2]);
+        const currentIdx = base.getDay();
+        let diff = (targetIdx - currentIdx + 7) % 7;
+        if (diff === 0) diff = 7;
+        const d = new Date(base);
+        d.setDate(d.getDate() + diff);
+        return `${shortDays[d.getDay()]} ${d.getDate()} ${shortMonths[d.getMonth()]} ${d.getFullYear()} (${phrase})`;
+      }
+
+      return phrase;
+    }
+
+    function detectHazFlags(text) {
+      return {
+        isHaz: /\b(?:haz|hazardous|adr|dangerous\s+goods|dg\s+load)\b/i.test(text),
+        isLtdQty: /\b(?:ltd\s*qty|limited\s+quantit(?:y|ies)|lq\b)\b/i.test(text)
+      };
+    }
+
+    // --- Main Email & Multi-Format Load Parser ---
+    function parseEmailInput(raw) {
+      if (!raw || !raw.trim()) return;
+
+      const isRawEml = /^(Delivered-To:|Received:|Return-Path:|From:|Subject:|MIME-Version:)/im.test(raw);
+      let headers = {};
+      let htmlBody = '';
+      let plainBody = raw;
+
+      if (isRawEml) {
+        const extracted = extractTextFromMime(raw);
+        headers = extracted.headers;
+        htmlBody = extracted.html;
+        plainBody = extracted.plain;
+      } else {
+        const fromMatch = raw.match(/^(?:From|Sender):\s*(.+)$/im);
+        const dateMatch = raw.match(/^(?:Date|Sent):\s*(.+)$/im);
+        const subjMatch = raw.match(/^Subject:\s*(.+)$/im);
+        if (fromMatch) headers['from'] = fromMatch[1].trim();
+        if (dateMatch) headers['date'] = dateMatch[1].trim();
+        if (subjMatch) headers['subject'] = subjMatch[1].trim();
+      }
+
+      const customer = resolveCustomerName(headers);
+      if (customer) document.getElementById('fieldCustomer').value = customer;
+
+      const rawDate = headers['date'] || headers['x-ms-exchange-crosstenant-originalarrivaltime'] || '';
+      document.getElementById('fieldOfferDate').value = formatEmailTimestamp(rawDate);
+
+      const subject = (headers['subject'] || '').replace(/^\[Bookings\]\s*/i, '').trim();
+
+      let cleanText = plainBody;
+      let htmlRoutes = [];
+
+      if (htmlBody) {
+        const doc = new DOMParser().parseFromString(htmlBody, 'text/html');
+        const sigEl = doc.querySelector('#x_Signature, #Signature, [id*="signature" i], [id*="disclaimer" i]');
+        if (sigEl) sigEl.remove();
+
+        const tables = doc.querySelectorAll('table');
+        tables.forEach(tbl => {
+          const rows = Array.from(tbl.querySelectorAll('tr'));
+          if (rows.length >= 2) {
+            const headerCells = Array.from(rows[0].querySelectorAll('td, th')).map(c => c.textContent.trim().toLowerCase());
+            const fromIdx = headerCells.findIndex(h => /loading\s*from|origin|collect|from/.test(h));
+            const toIdx = headerCells.findIndex(h => /delivery\s*to|destination|deliver|to/.test(h));
+            if (fromIdx !== -1 && toIdx !== -1) {
+              for (let r = 1; r < rows.length; r++) {
+                const cells = Array.from(rows[r].querySelectorAll('td, th')).map(c => c.textContent.replace(/\s+/g, ' ').trim());
+                if (cells[fromIdx] && cells[toIdx]) {
+                  htmlRoutes.push({
+                    origin: cleanLocationText(cells[fromIdx]),
+                    destination: cleanLocationText(cells[toIdx])
+                  });
+                }
+              }
+            }
+          }
+        });
+
+        if (!cleanText.trim()) {
+          doc.querySelectorAll('p, div, tr, li, br').forEach(el => {
+            if (el.tagName === 'BR') el.replaceWith('\n');
+            else el.append('\n');
+          });
+          cleanText = doc.body.textContent || '';
+        }
+      }
+
+      const bodyWithoutSig = stripSignatureAndDisclaimer(cleanText);
+      const lines = bodyWithoutSig.split(/\r?\n/).map(l => l.replace(/\u00A0/g, ' ').trim()).filter(Boolean);
+
+      const extractedItems = [];
+      let currentDateHeading = '';
+
+      let proseOrigin = '';
+      let proseDest = '';
+      let proseColDate = '';
+      let proseDelDate = '';
+
+      const dateHeadingRegex = /^(?:(?:mon|tue|tues|wed|thu|thurs|fri|sat|sun)[a-z]*\s+)?\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*(?:\s+\d{2,4})?$|^\d{1,2}[\/\-.]\d{1,2}(?:[\/\-.]\d{2,4})?$/i;
+      const inlineRouteWithScheduleRegex = /^([A-Za-z0-9][A-Za-z0-9\s,.'/-]{1,35}?)\s*(?:–|—|-|->|→|to)\s*([A-Za-z0-9][A-Za-z0-9\s,.'/-]{1,35}?)\s+(collect(?:ing|ion)?\b.+)$/i;
+      const routeLineRegex = /^([A-Za-z][A-Za-z0-9\s,.'/-]{1,40}?)\s*(?:–|—|-|->|→|to)\s*([A-Za-z][A-Za-z0-9\s,.'/-]{1,40}?)(?:\s*\(([^)]+)\))?$/i;
+
+      for (const line of lines) {
+        if (/^(hi|hello|dear|good\s+(morning|afternoon))\b/i.test(line)) continue;
+        if (/^(could\s+you\s+provide|we\s+have\s+these\s+loads|do\s+you\s+have\s+availability|can\s+you\s+(?:please\s+)?(?:quote|revert)|i\s+have\s+\d+\s+loads)/i.test(line)) continue;
+        if (/^(loading\s+from|delivery\s+to|rate)$/i.test(line)) continue;
+
+        if (dateHeadingRegex.test(line)) {
+          currentDateHeading = line.replace(/\s+/g, ' ').trim();
+          continue;
+        }
+
+        const inlineSchedMatch = line.match(inlineRouteWithScheduleRegex);
+        if (inlineSchedMatch && !/^delivery\s+to\b/i.test(line)) {
+          const orig = cleanLocationText(inlineSchedMatch[1]);
+          const dest = cleanLocationText(inlineSchedMatch[2]);
+          const schedStr = inlineSchedMatch[3].replace(/\([^)]*\)/g, '').trim();
+          const flags = detectHazFlags(line);
+
+          const colDelMatch = schedStr.match(/collect(?:ing|ion)?\s+(.+?)\s+deliver(?:y|ing)?\s+(.+)/i);
+          const colDate = colDelMatch ? colDelMatch[1].trim() : schedStr.replace(/^collect(?:ing|ion)?\s+/i, '').trim();
+          const delDate = colDelMatch ? colDelMatch[2].trim() : '';
+
+          extractedItems.push({
+            selected: true,
+            origin: orig,
+            destination: dest,
+            collectionDate: colDate,
+            deliveryDate: delDate,
+            isHaz: flags.isHaz,
+            isLtdQty: flags.isLtdQty,
+            region: detectOriginRegion(orig)
+          });
+          continue;
+        }
+
+        const rMatch = line.match(routeLineRegex);
+        if (rMatch && !/full\s+loads\s*-\s*wire/i.test(line) && !/^delivery\s+to\b/i.test(line)) {
+          const orig = cleanLocationText(rMatch[1]);
+          const flags = detectHazFlags(line);
+          extractedItems.push({
+            selected: true,
+            origin: orig,
+            destination: cleanLocationText(rMatch[2]),
+            collectionDate: currentDateHeading || '',
+            deliveryDate: '',
+            isHaz: flags.isHaz,
+            isLtdQty: flags.isLtdQty,
+            region: detectOriginRegion(orig)
+          });
+          continue;
+        }
+
+        const relDateMatch = line.match(/\b((?:next|this)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|tomorrow|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\b/i);
+        if (relDateMatch) {
+          proseColDate = resolveRelativeDate(relDateMatch[1], rawDate);
+        }
+
+        const exMatch = line.match(/\b(?:ex|collect(?:ing|ion)?\s+(?:from|in|at)|loading\s+(?:from|in|at)|from)\s+([A-Za-z][A-Za-z0-9\s,.'-]{1,40}?)(?=\s+(?:for|to|deliver|tipping|on|next|this|$)|[.,;]|$)/i);
+        if (exMatch && !/^the\s+following/i.test(exMatch[1])) {
+          proseOrigin = cleanLocationText(exMatch[1]);
+        }
+
+        const destMatch = line.match(/\b(?:deliver(?:y|ing)?\s+(?:to|in|at)|tipping\s+(?:in|at)|destination[:\s]+)\s*([A-Za-z][A-Za-z0-9\s,.'-]{1,45}?)(?=\s+(?:on|next|this|please|do\s+you|$)|[.,;]|$)/i);
+        if (destMatch) {
+          proseDest = cleanLocationText(destMatch[1]);
+        }
+      }
+
+      const globalFlags = detectHazFlags(bodyWithoutSig);
+
+      if (extractedItems.length === 0 && (proseOrigin || proseDest)) {
+        extractedItems.push({
+          selected: true,
+          origin: proseOrigin,
+          destination: proseDest,
+          collectionDate: proseColDate || currentDateHeading || '',
+          deliveryDate: proseDelDate || '',
+          isHaz: globalFlags.isHaz,
+          isLtdQty: globalFlags.isLtdQty,
+          region: detectOriginRegion(proseOrigin)
+        });
+      }
+
+      if (extractedItems.length === 0 && htmlRoutes.length > 0) {
+        htmlRoutes.forEach(hr => {
+          extractedItems.push({
+            selected: true,
+            origin: hr.origin,
+            destination: hr.destination,
+            collectionDate: proseColDate || currentDateHeading || '',
+            deliveryDate: '',
+            isHaz: globalFlags.isHaz,
+            isLtdQty: globalFlags.isLtdQty,
+            region: detectOriginRegion(hr.origin)
+          });
+        });
+      }
+
+      if (extractedItems.length === 0 && subject) {
+        const subjRoute = subject.match(/(?:ex|from)\s+([A-Za-z\s,]+?)\s+(?:to|->|–|-)\s+([A-Za-z\s,]+)/i);
+        if (subjRoute) {
+          const orig = cleanLocationText(subjRoute[1]);
+          extractedItems.push({
+            selected: true,
+            origin: orig,
+            destination: cleanLocationText(subjRoute[2]),
+            collectionDate: proseColDate || currentDateHeading || '',
+            deliveryDate: '',
+            isHaz: globalFlags.isHaz,
+            isLtdQty: globalFlags.isLtdQty,
+            region: detectOriginRegion(orig)
+          });
+        }
+      }
+
+      if (extractedItems.length > 0) {
+        stagedLoads = extractedItems;
+      } else {
+        resetStagedLoads();
+      }
+
+      renderStagedLoads();
+    }
+
+    function resetStagedLoads() {
+      stagedLoads = [{
+        selected: true,
+        origin: '',
+        destination: '',
+        collectionDate: '',
+        deliveryDate: '',
+        isHaz: false,
+        isLtdQty: false,
+        region: 'UK'
+      }];
+      renderStagedLoads();
+    }
+
+    function addEmptyStagedLoad() {
+      const lastCol = stagedLoads.length > 0 ? stagedLoads[stagedLoads.length - 1].collectionDate : '';
+      stagedLoads.push({
+        selected: true,
+        origin: '',
+        destination: '',
+        collectionDate: lastCol,
+        deliveryDate: '',
+        isHaz: false,
+        isLtdQty: false,
+        region: 'UK'
+      });
+      renderStagedLoads();
+    }
+
+    function removeStagedLoad(idx) {
+      stagedLoads.splice(idx, 1);
+      if (stagedLoads.length === 0) resetStagedLoads();
+      else renderStagedLoads();
+    }
+
+    function updateStagedField(idx, key, val) {
+      if (stagedLoads[idx]) {
+        stagedLoads[idx][key] = val;
+        if (key === 'origin') {
+          stagedLoads[idx].region = detectOriginRegion(val);
+        }
+        updateStagedSummary();
+      }
+    }
+
+    function updateStagedSummary() {
+      const activeCount = stagedLoads.filter(l => l.selected && (l.origin || l.destination)).length;
+      const badge = document.getElementById('parseBadge');
+      const btnLabel = document.getElementById('submitBtnLabel');
+
+      if (activeCount > 0) {
+        badge.textContent = `${activeCount} Load${activeCount > 1 ? 's' : ''} Ready`;
+        badge.classList.remove('hidden');
+        btnLabel.textContent = `Add ${activeCount} Load${activeCount > 1 ? 's' : ''} to Team Board`;
+      } else {
+        badge.classList.add('hidden');
+        btnLabel.textContent = 'Add Load to Team Board';
+      }
+    }
+
+    function renderStagedLoads() {
+      const container = document.getElementById('stagedLoadsContainer');
+      container.innerHTML = stagedLoads.map((item, idx) => {
+        const reg = item.region || detectOriginRegion(item.origin);
+        return `
+        <div class="p-3.5 rounded-xl border ${item.selected ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-slate-50 opacity-60'} transition">
+          <div class="flex items-center justify-between mb-2.5">
+            <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+              <input type="checkbox" ${item.selected ? 'checked' : ''}
+                     onchange="updateStagedField(${idx}, 'selected', this.checked); renderStagedLoads();"
+                     class="rounded text-blue-600 focus:ring-blue-500" />
+              Offer #${idx + 1}
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${reg === 'IRL' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">
+                ${reg} Map
+              </span>
+            </label>
+            ${stagedLoads.length > 1 ? `
+              <button type="button" onclick="removeStagedLoad(${idx})" title="Remove offer" class="text-slate-400 hover:text-rose-600">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>` : ''}
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Loading From *</label>
+              <input type="text" value="${escapeHtml(item.origin)}" placeholder="e.g. Lutterworth or Cork"
+                     oninput="updateStagedField(${idx}, 'origin', this.value)"
+                     class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Delivery To *</label>
+              <input type="text" value="${escapeHtml(item.destination)}" placeholder="e.g. Rathcoole or Dublin"
+                     oninput="updateStagedField(${idx}, 'destination', this.value)"
+                     class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Collection Date</label>
+              <input type="text" value="${escapeHtml(item.collectionDate)}" placeholder="e.g. Mon 30 Nov or 30/11"
+                     oninput="updateStagedField(${idx}, 'collectionDate', this.value)"
+                     class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-blue-900 focus:ring-1 focus:ring-blue-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Delivery Date</label>
+              <input type="text" value="${escapeHtml(item.deliveryDate)}" placeholder="e.g. Wed 2 Dec (optional)"
+                     oninput="updateStagedField(${idx}, 'deliveryDate', this.value)"
+                     class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
+            </div>
+          </div>
+
+          <!-- HAZ & Ltd Qty Tick Boxes -->
+          <div class="flex items-center gap-5 mt-3 pt-2.5 border-t border-slate-200/70">
+            <label class="inline-flex items-center gap-2 text-xs font-semibold text-rose-700 cursor-pointer select-none">
+              <input type="checkbox" ${item.isHaz ? 'checked' : ''}
+                     onchange="updateStagedField(${idx}, 'isHaz', this.checked)"
+                     class="w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500" />
+              <span>HAZ / ADR</span>
+            </label>
+
+            <label class="inline-flex items-center gap-2 text-xs font-semibold text-amber-700 cursor-pointer select-none">
+              <input type="checkbox" ${item.isLtdQty ? 'checked' : ''}
+                     onchange="updateStagedField(${idx}, 'isLtdQty', this.checked)"
+                     class="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500" />
+              <span>Ltd Qty (LQ)</span>
+            </label>
+          </div>
+        </div>
+      `}).join('');
+
+      lucide.createIcons();
+      updateStagedSummary();
+    }
+
+    function clearIntake() {
+      document.getElementById('rawEmailInput').value = '';
+      document.getElementById('fieldCustomer').value = '';
+      document.getElementById('fieldOfferDate').value = getCurrentFormattedTimestamp();
+      resetStagedLoads();
+    }
+
+    // --- Board Actions & Google Sheets Sync ---
+    async function commitStagedLoads() {
+      const customer = document.getElementById('fieldCustomer').value.trim();
+      const offerDate = document.getElementById('fieldOfferDate').value.trim() || getCurrentFormattedTimestamp();
+
+      if (!customer) {
+        showToast('Please enter the Customer first.');
+        document.getElementById('fieldCustomer').focus();
+        return;
+      }
+
+      const toAdd = stagedLoads.filter(l => l.selected && l.origin.trim() && l.destination.trim());
+      if (toAdd.length === 0) {
+        showToast('Ensure at least one offer has Loading From & Delivery To.');
+        return;
+      }
+
+      const newRecords = toAdd.map((item, i) => {
+        const cleanOrig = cleanLocationText(item.origin);
+        return {
+          id: `${Date.now()}-${i}`,
+          customer,
+          offerDate,
+          origin: cleanOrig,
+          destination: cleanLocationText(item.destination),
+          collectionDate: item.collectionDate.trim() || 'Open / TBC',
+          deliveryDate: item.deliveryDate.trim() || '',
+          isHaz: Boolean(item.isHaz),
+          isLtdQty: Boolean(item.isLtdQty),
+          status: 'Available',
+          region: item.region || detectOriginRegion(cleanOrig)
+        };
+      });
+
+      loads.unshift(...newRecords);
+      saveLocal();
+      renderBoard();
+      clearIntake();
+      showToast(`Added ${newRecords.length} load${newRecords.length > 1 ? 's' : ''} to board!`);
+
+      if (webhookUrl) {
+        try {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'add', loads: newRecords })
+          });
+        } catch (err) {
+          console.error('Sheet sync error:', err);
+        }
+      }
+    }
+
+    async function updateStatus(id, newStatus) {
+      const idx = loads.findIndex(l => String(l.id) === String(id));
+      if (idx === -1) return;
+      loads[idx].status = newStatus;
+      saveLocal();
+      renderBoard();
+      showToast(`Marked as ${newStatus}`);
+
+      if (webhookUrl) {
+        try {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'updateStatus', id, status: newStatus })
+          });
+        } catch (err) {
+          console.error('Status sync error:', err);
+        }
+      }
+    }
+
+    function deleteLoad(id) {
+      loads = loads.filter(l => String(l.id) !== String(id));
+      saveLocal();
+      renderBoard();
+      showToast('Removed from local view');
+    }
+
+    async function refreshBoard() {
+      if (!webhookUrl) {
+        showToast('Connect a Google Sheet URL first to sync.');
+        return;
+      }
+      try {
+        showToast('Syncing with Google Sheet...');
+        const res = await fetch(webhookUrl);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          loads = data.reverse();
+          saveLocal();
+          renderBoard();
+          showToast('Synced with team Google Sheet!');
+        }
+      } catch (err) {
+        showToast('Sync warning: Ensure Apps Script access is set to "Anyone".');
+        renderBoard();
+      }
+    }
+
+    function renderBoard() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const statusFilter = document.getElementById('statusFilter').value;
+      const tbody = document.getElementById('loadsTableBody');
+
+      updateSortIcons();
+      updateNextDayMapCounts();
+
+      const filtered = loads
+        .filter(l => {
+          const matchesStatus = statusFilter === 'ALL' || l.status === statusFilter;
+          const matchesNextDay = !filterNextWorkingDayOnly || isNextWorkingDayLoad(l);
+          const colStr = l.collectionDate || l.requestedDate || '';
+          const delStr = l.deliveryDate || '';
+          const text = `${l.customer} ${l.origin} ${l.destination} ${colStr} ${delStr} ${l.isHaz ? 'haz' : ''} ${l.isLtdQty ? 'ltd qty' : ''}`.toLowerCase();
+          return matchesStatus && matchesNextDay && text.includes(query);
+        })
+        .sort(compareLoads);
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="px-6 py-12 text-center text-slate-400 text-sm">
+              ${filterNextWorkingDayOnly
+                ? 'No loads found for the next working day. Click "Showing Next Working Day" above to view all dates.'
+                : 'No backup loads match your filter. Add an offer manually or drop an email on the left.'}
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(l => {
+        const badgeStyles = {
+          'Available': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          'Claimed': 'bg-blue-50 text-blue-700 border-blue-200',
+          'Expired': 'bg-slate-100 text-slate-500 border-slate-200'
+        }[l.status] || 'bg-slate-100 text-slate-700';
+
+        const colDate = String(l.collectionDate || l.requestedDate || 'Open / TBC').replace(/\s*\(Rate Request\)/i, '');
+        const delDate = String(l.deliveryDate || '').trim();
+        const offerDt = l.offerDate || l.emailTimestamp || '';
+        const cleanOrig = cleanLocationText(l.origin);
+        const cleanDest = cleanLocationText(l.destination);
+        const reg = l.region || detectOriginRegion(cleanOrig);
+        const isNwd = isNextWorkingDayLoad(l);
+
+        return `
+          <tr class="hover:bg-slate-50/90 transition ${isNwd && l.status === 'Available' ? 'bg-blue-50/25' : ''}">
+            <td class="px-4 py-4 align-top">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-semibold text-slate-900 text-sm leading-snug">Col: ${escapeHtml(colDate)}</span>
+                ${isNwd ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800">Next Day</span>` : ''}
+              </div>
+              ${delDate ? `<div class="text-xs text-slate-600 mt-1">Del: ${escapeHtml(delDate)}</div>` : ''}
+              ${(l.isHaz || l.isLtdQty) ? `
+                <div class="flex items-center gap-1.5 mt-1.5">
+                  ${l.isHaz ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">HAZ</span>` : ''}
+                  ${l.isLtdQty ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">LTD QTY</span>` : ''}
+                </div>` : ''}
+            </td>
+            <td class="px-4 py-4 align-top">
+              <div class="font-medium text-slate-900 text-sm leading-snug">${escapeHtml(l.customer)}</div>
+              <div class="text-xs text-slate-400 mt-1">Offer: ${escapeHtml(offerDt)}</div>
+            </td>
+            <td class="px-4 py-4 align-top">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-slate-800 leading-snug">${escapeHtml(cleanOrig)}</span>
+                <button type="button" onclick="toggleRegion('${l.id}')" title="Click to switch between UK Map and IRL Map"
+                        class="px-1.5 py-0.5 rounded text-[10px] font-bold border transition ${reg === 'IRL' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'}">
+                  ${reg}
+                </button>
+              </div>
+            </td>
+            <td class="px-4 py-4 align-top">
+              <div class="text-sm font-medium text-slate-800 leading-snug">${escapeHtml(cleanDest)}</div>
+            </td>
+            <td class="px-4 py-4 align-top">
+              <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${badgeStyles}">
+                ${escapeHtml(l.status)}
+              </span>
+            </td>
+            <td class="px-4 py-4 align-top text-right whitespace-nowrap">
+              <div class="inline-flex items-center gap-2">
+                ${l.status === 'Available' ? `
+                  <button onclick="updateStatus('${l.id}', 'Claimed')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition shadow-2xs">
+                    Claim
+                  </button>` : `
+                  <button onclick="updateStatus('${l.id}', 'Available')" class="px-2.5 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-lg text-xs font-medium transition">
+                    Reopen
+                  </button>`}
+                <button onclick="deleteLoad('${l.id}')" title="Delete" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function exportCSV() {
+      if (loads.length === 0) {
+        showToast('No loads to export.');
+        return;
+      }
+      const sorted = [...loads].sort(compareLoads);
+      const headers = ['Offer Date', 'Customer', 'Loading From', 'Delivery To', 'Collection Date', 'Delivery Date', 'HAZ', 'Ltd Qty', 'Status', 'Region'];
+      const rows = sorted.map(l => [
+        l.offerDate || l.emailTimestamp || '',
+        l.customer,
+        cleanLocationText(l.origin),
+        cleanLocationText(l.destination),
+        l.collectionDate || l.requestedDate || '',
+        l.deliveryDate || '',
+        l.isHaz ? 'YES' : 'NO',
+        l.isLtdQty ? 'YES' : 'NO',
+        l.status,
+        l.region || detectOriginRegion(l.origin)
+      ].map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(','));
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Backup_Customer_Loads_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    function saveLocal() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(loads));
+    }
+
+    // Modal & Helpers
+    function openSetupModal() {
+      const m = document.getElementById('setupModal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+    function closeSetupModal() {
+      const m = document.getElementById('setupModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+    function saveWebhookUrl() {
+      webhookUrl = document.getElementById('webhookUrlInput').value.trim();
+      localStorage.setItem(WEBHOOK_KEY, webhookUrl);
+      updateSyncBadge();
+      closeSetupModal();
+      showToast(webhookUrl ? 'Google Sheet connected!' : 'Switched to Local Mode');
+      if (webhookUrl) refreshBoard();
+    }
+    function updateSyncBadge() {
+      const badge = document.getElementById('syncStatusBadge');
+      if (webhookUrl) {
+        badge.className = 'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Google Sheet Connected';
+      } else {
+        badge.className = 'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400"></span> Local Mode (Not Synced)';
+      }
+    }
+    function copyAppsScript() {
+      navigator.clipboard.writeText(document.getElementById('appsScriptCode').textContent);
+      showToast('Apps Script copied to clipboard!');
+    }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      t.classList.remove('hidden');
+      t.classList.add('flex');
+      setTimeout(() => { t.classList.add('hidden'); t.classList.remove('flex'); }, 3500);
+    }
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    // Built-in Samples
+    function loadSampleDFDS() {
+      const sample = `From: "'Tony Cochrane' via Bookings" <bookings@gogginstransport.ie>
+X-Original-From: Tony Cochrane <toncoch@dfds.com>
+Subject: [Bookings] 2 loads next week
+Date: Thu, 26 Nov 2026 16:38:24 +0000
+
+Hi
+
+I have 2 loads next week let me know if you can do them and what you need now to stick your name against them
+
+Curtainsiders / offload from side
+
+DE55 to Rathcoole collect Monday 30th November delivery 2nd December
+
+DE55 to Rathcoole collect 4th December AM delivery Monday (HAZ LOAD )`;
+      document.getElementById('rawEmailInput').value = sample;
+      parseEmailInput(sample);
+      showToast('Loaded DFDS 2-load sample');
+    }
+
+    function loadSampleIFS() {
+      const sample = `From: Robbie Morris <Robbie@irishfreightsolutions.com>
+Subject: [Bookings] LOADS FOR IFS
+Date: Wed, 25 Nov 2026 16:13:42 +0000
+X-Original-Sender: robbie@irishfreightsolutions.com
+
+FRIDAY 29TH NOVEMBER
+BASILDON – ANNSBROUGH (CURTAIN/BOX)
+LLANIDOLES – CORK (HTL CURTAIN)
+GALWAY – BIRMINGHAM (CURTAIN)
+
+TUESDAY 2ND DECEMBER
+DUDLEY – DROMORE (BOX)`;
+      document.getElementById('rawEmailInput').value = sample;
+      parseEmailInput(sample);
+      showToast('Loaded IFS 4-load sample');
+    }
+  </script>
+</body>
+</html>
