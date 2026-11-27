@@ -58,9 +58,9 @@
             1. Quick Auto-Fill from Email
           </h2>
           <div class="flex items-center gap-1.5 text-[11px]">
-            <button type="button" onclick="loadSamplePerennial()" class="text-blue-600 hover:text-blue-800 font-medium underline">Perennial</button>
+            <button type="button" onclick="loadSampleUniroad()" class="text-blue-600 hover:text-blue-800 font-medium underline">Uniroad</button>
             <span class="text-slate-300">|</span>
-            <button type="button" onclick="loadSampleSeabridge()" class="text-slate-600 hover:text-slate-900 font-medium underline">Seabridge</button>
+            <button type="button" onclick="loadSamplePerennial()" class="text-slate-600 hover:text-slate-900 font-medium underline">Perennial</button>
             <span class="text-slate-300">|</span>
             <button type="button" onclick="loadSampleDFDS()" class="text-slate-500 hover:text-slate-800 underline">DFDS</button>
             <span class="text-slate-300">|</span>
@@ -100,7 +100,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 pb-4 border-b border-slate-100">
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">Customer *</label>
-            <input type="text" id="fieldCustomer" required placeholder="e.g. Perennial Freight — Owen"
+            <input type="text" id="fieldCustomer" required placeholder="e.g. Uniroad Freight — Gavin Behan"
                    oninput="recheckStagedDuplicates()"
                    class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
@@ -316,6 +316,14 @@ function doPost(e) {
     for (let i = 1; i < rows.length; i++) {
       if (String(rows[i][0]) === String(payload.id)) {
         sheet.getRange(i + 1, 10).setValue(payload.status);
+        break;
+      }
+    }
+  } else if (payload.action === 'delete') {
+    const rows = sheet.getDataRange().getValues();
+    for (let i = rows.length - 1; i >= 1; i--) {
+      if (String(rows[i][0]) === String(payload.id)) {
+        sheet.deleteRow(i + 1);
         break;
       }
     }
@@ -636,8 +644,9 @@ function doPost(e) {
     // --- Location Cleaner ---
     function cleanLocationText(loc) {
       return String(loc || '')
-        .replace(/^[:\-\s]+/, '')
-        .replace(/^(?:ex|from|collect(?:ing|ion)?\s+(?:from|in|at)|loading\s+(?:from|in|at)|deliver(?:ed|y|ing)?\s+(?:to|in|at)|tipping\s+(?:in|at)|to)\s*:?\s*/i, '')
+        .replace(/^[:.\-\s]+/, '')
+        .replace(/^(?:ex|from|collect(?:ing|ion)?\s+(?:from|in|at)|loading\s+(?:from|in|at)|deliver(?:ed|y|ing)?\s+(?:to|in|at)|tipping\s+(?:in|at)|to)\s*[.:]?\s*/i, '')
+        .replace(/\.+$/, '')
         .replace(/\s+/g, ' ')
         .trim();
     }
@@ -930,7 +939,8 @@ function doPost(e) {
         'nationalseaways.com': 'National Seaways',
         'seabridge.ie': 'Seabridge',
         'dfds.com': 'DFDS',
-        'perennialfreight.com': 'Perennial Freight'
+        'perennialfreight.com': 'Perennial Freight',
+        'uniroadfreight.com': 'Uniroad Freight'
       };
 
       let company = '';
@@ -966,22 +976,18 @@ function doPost(e) {
       const lines = text.split(/\r?\n/);
       const kept = [];
       for (const line of lines) {
-        const trimmed = line.trim();
+        const trimmed = line.replace(/^>+\s*/, '').trim();
         if (/^_{5,}$/.test(trimmed)) break;
-        if (/^(many\s+thanks|kind\s+regards|best\s+regards|regards|thanks\s+and\s+regards)[,.!]?$/i.test(trimmed)) break;
-        if (/^(thomas\s+reid|owen\s+mcloughlin|robbie\s+morris|karl\s+byrne|priscilla\s+quinn|tony\s+cochrane)$/i.test(trimmed)) break;
-        if (/^(contracts\s+manager|operations\s+manager|transport\s+planner|freight\s+forwarder|business\s+development|sales\s*&\s*forwarding|freight\s+management\s+dept)/i.test(trimmed)) break;
-        if (/^perennial\s+freight$/i.test(trimmed)) break;
-        if (/^seabridge/i.test(trimmed)) break;
-        if (/^your\s+partner\s+for\s+moving\s+freight/i.test(trimmed)) break;
-        if (/^if\s+you\s+have\s+received\s+this\s+email\s+from\s+me\s+outside/i.test(trimmed)) break;
-        if (/^it\s+is\s+strictly\s+forbidden/i.test(trimmed)) break;
-        if (/^\*?\s*all\s+(business|services|goods)\s+(is\s+conducted|are\s+carried|provided|transacted)/i.test(trimmed)) break;
-        if (/^confidentiality:/i.test(trimmed)) break;
-        if (/^p&o\s+ferrymasters\s+code\s+of\s+conduct/i.test(trimmed)) break;
-        if (/^this\s+email\s+and\s+any\s+attachments/i.test(trimmed)) break;
-        if (/^(?:phone|landline|mobile|tel|mob|t|m|e|w)[\s:]+(\+?\d|www\.|[a-z0-9._%+-]+@)/i.test(trimmed)) break;
-        if (/dublin\s*\d|swords\s+road|grand\s+canal|treasury\s+buil|westbank\s+road|belfast,\s*bt|taghmon/i.test(trimmed)) break;
+        if (/^(many\s+thanks|kind\s+regards|best\s+regards|regards|thanks\s+and\s+regards)[,.!]?$/i.test(trimmed)) {
+          // Only break if not inside a quoted reply chain that continues below
+          continue;
+        }
+        if (/^(thomas\s+reid|owen\s+mcloughlin|robbie\s+morris|karl\s+byrne|priscilla\s+quinn|tony\s+cochrane|gavin\s+behan)$/i.test(trimmed)) continue;
+        if (/^(contracts\s+manager|operations\s+manager|transport\s+planner|freight\s+forwarder|business\s+development|sales\s*&\s*forwarding|freight\s+management\s+dept)/i.test(trimmed)) continue;
+        if (/^(perennial\s+freight|seabridge)/i.test(trimmed)) continue;
+        if (/^\*?\s*(?:introducing\s+our\s+new\s+website|all\s+business\s+is\s+transacted|of\s+the\s+iifa|the\s+quotation\s+does\s+not\s+include|company\s+registration\s+no|all\s+goods\s+are\s+carried|these\s+conditions\s+shall|directors;|registered\s+office;|confidentiality:)/i.test(trimmed)) continue;
+        if (/^(?:phone|landline|mobile|tel|fax|mob|t|m|e|w|head\s+office)[\s:]+(\+?\d|00\d|www\.|[a-z0-9._%+-]+@)/i.test(trimmed)) continue;
+        if (/unit\s+86\/90|baldoyle|rosemount\s+business\s+park|swords\s+road|grand\s+canal|treasury\s+buil|westbank\s+road|belfast,\s*bt|taghmon/i.test(trimmed)) continue;
         kept.push(line);
       }
       return kept.join('\n').trim();
@@ -1024,6 +1030,26 @@ function doPost(e) {
       };
     }
 
+    // Extract town/postcode from a multi-line address block (e.g., "Ex. Brisko Metal... / Ipswich IP1 5AN" -> "Ipswich IP1 5AN")
+    function extractCleanLocationFromAddressBlock(blockLines) {
+      const cleanedLines = blockLines
+        .map(l => cleanLocationText(l))
+        .filter(l => l && !/^(?:uk|england|scotland|wales|ireland|roi|industrial\s+estate|business\s+park|trading\s+estate|yard|limited|ltd|plc)$/i.test(l));
+
+      if (cleanedLines.length === 0) return '';
+      if (cleanedLines.length === 1) return cleanedLines[0];
+
+      // Look from bottom up for postcode or county/town line
+      const lastLine = cleanedLines[cleanedLines.length - 1];
+      const prevLine = cleanedLines[cleanedLines.length - 2];
+
+      // If last line is "Co. Cork" and previous line is "Monkstown", combine as "Monkstown, Co. Cork"
+      if (/^co\.?\s+/i.test(lastLine) && prevLine) {
+        return `${prevLine}, ${lastLine}`;
+      }
+      return lastLine;
+    }
+
     // --- Main Email & Multi-Format Load Parser ---
     function parseEmailInput(raw) {
       if (!raw || !raw.trim()) return 0;
@@ -1053,7 +1079,7 @@ function doPost(e) {
       const rawDate = headers['date'] || headers['x-ms-exchange-crosstenant-originalarrivaltime'] || '';
       document.getElementById('fieldOfferDate').value = formatEmailTimestamp(rawDate);
 
-      const subject = (headers['subject'] || '').replace(/^\[Bookings\]\s*/i, '').trim();
+      const subject = (headers['subject'] || '').replace(/^(?:Re:|Fwd?:)\s*/i, '').replace(/^\[Bookings\]\s*/i, '').trim();
 
       let cleanText = plainBody;
       let htmlRoutes = [];
@@ -1094,7 +1120,8 @@ function doPost(e) {
       }
 
       const bodyWithoutSig = stripSignatureAndDisclaimer(cleanText);
-      const lines = bodyWithoutSig.split(/\r?\n/).map(l => l.replace(/\u00A0/g, ' ').trim()).filter(Boolean);
+      // Strip leading quote markers (`> `) so quoted booking blocks parse identically to fresh emails
+      const rawLines = bodyWithoutSig.split(/\r?\n/).map(l => l.replace(/^(?:>\s*)+/, '').replace(/\u00A0/g, ' ').trim());
 
       const extractedItems = [];
       let currentDateHeading = '';
@@ -1103,13 +1130,54 @@ function doPost(e) {
       let proseDest = '';
       let proseColDate = '';
       let proseDelDate = '';
+      let repeatOverrideDate = '';
+
+      // Detect "another of these Tuesday" / "same again Wednesday" in the top message
+      const topSection = rawLines.slice(0, 12).join(' ');
+      const repeatMatch = topSection.match(/\b(?:another\s+of\s+these|same\s+again|repeat\s+(?:this|load)|extra\s+load)\b[^.?\n]*?\b((?:next|this)?\s*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|tomorrow|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\b/i);
+      if (repeatMatch) {
+        repeatOverrideDate = resolveRelativeDate(repeatMatch[1], rawDate);
+      }
+
+      // Multi-line address block collector for "Ex. Company / Street / Town Postcode" and "To: Company / Street / Town"
+      let activeAddrBlock = null;
+      let exBlockLines = [];
+      let toBlockLines = [];
 
       const dateHeadingRegex = /^(?:(?:mon|tue|tues|wed|thu|thurs|fri|sat|sun)[a-z]*\s+)?\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*(?:\s+\d{2,4})?$|^\d{1,2}[\/\-.]\d{1,2}(?:[\/\-.]\d{2,4})?$/i;
       const inlineRouteWithScheduleRegex = /^([A-Za-z0-9][A-Za-z0-9\s,.'/-]{1,35}?)\s*(?:–|—|-|->|→|to)\s*([A-Za-z0-9][A-Za-z0-9\s,.'/-]{1,35}?)\s+(collect(?:ing|ion)?\b.+)$/i;
       const routeLineRegex = /^([A-Za-z][A-Za-z0-9\s,.'/-]{1,40}?)\s*(?:–|—|-|->|→|to)\s*([A-Za-z][A-Za-z0-9\s,.'/-]{1,40}?)(?:\s*\(([^)]+)\))?$/i;
 
-      for (const line of lines) {
-        if (/^(hi|hello|dear|good\s+(morning|afternoon))\b/i.test(line)) continue;
+      for (let idx = 0; idx < rawLines.length; idx++) {
+        const line = rawLines[idx];
+
+        if (!line) {
+          activeAddrBlock = null;
+          continue;
+        }
+
+        // Handle multi-line Ex. / To: address blocks
+        if (/^ex[.:]\s+/i.test(line)) {
+          activeAddrBlock = 'ex';
+          exBlockLines = [line];
+          continue;
+        }
+        if (/^to\s*:\s+/i.test(line)) {
+          activeAddrBlock = 'to';
+          toBlockLines = [line];
+          continue;
+        }
+        if (activeAddrBlock) {
+          if (/^(?:col\s*ref|goods|rate|delivery|collect|please|kind\s+regards)/i.test(line)) {
+            activeAddrBlock = null;
+          } else {
+            if (activeAddrBlock === 'ex') exBlockLines.push(line);
+            if (activeAddrBlock === 'to') toBlockLines.push(line);
+            continue;
+          }
+        }
+
+        if (/^(hi|hello|dear|good\s+(morning|afternoon)|thanks\s+gavin|booking\s+confirmed)\b/i.test(line)) continue;
         if (/^(could\s+you\s+provide|we\s+have\s+these\s+loads|do\s+you\s+have\s+availability|can\s+you\s+(?:please\s+)?(?:advise|quote|revert)|i\s+have\s+\d+\s+loads)/i.test(line)) continue;
         if (/^(loading\s+from|delivery\s+to|rate)$/i.test(line)) continue;
 
@@ -1150,8 +1218,8 @@ function doPost(e) {
             selected: true,
             origin: orig,
             destination: dest,
-            collectionDate: colDate,
-            deliveryDate: delDate,
+            collectionDate: repeatOverrideDate || colDate,
+            deliveryDate: repeatOverrideDate ? '' : delDate,
             isHaz: flags.isHaz,
             isLtdQty: flags.isLtdQty,
             region: detectOriginRegion(orig)
@@ -1167,7 +1235,7 @@ function doPost(e) {
             selected: true,
             origin: orig,
             destination: cleanLocationText(rMatch[2]),
-            collectionDate: currentDateHeading || '',
+            collectionDate: repeatOverrideDate || currentDateHeading || '',
             deliveryDate: '',
             isHaz: flags.isHaz,
             isLtdQty: flags.isLtdQty,
@@ -1176,20 +1244,35 @@ function doPost(e) {
           continue;
         }
 
+        // Prose delivery date (e.g., "Delivery Weds AM 02/12")
+        const proseDelMatch = line.match(/^deliver(?:y|ing)?\s+(.+)$/i);
+        if (proseDelMatch && !proseDelDate && !repeatOverrideDate) {
+          proseDelDate = proseDelMatch[1].trim();
+        }
+
         const relDateMatch = line.match(/\b((?:next|this)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|tomorrow|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\b/i);
-        if (relDateMatch) {
+        if (relDateMatch && !proseColDate) {
           proseColDate = resolveRelativeDate(relDateMatch[1], rawDate);
         }
 
         const exMatch = line.match(/\b(?:ex|collect(?:ing|ion)?\s+(?:from|in|at)|loading\s+(?:from|in|at)|from)\s+([A-Za-z][A-Za-z0-9\s,.'-]{1,40}?)(?=\s+(?:for|to|deliver|tipping|on|next|this|$)|[.,;]|$)/i);
-        if (exMatch && !/^the\s+following/i.test(exMatch[1])) {
+        if (exMatch && !/^the\s+following/i.test(exMatch[1]) && !proseOrigin) {
           proseOrigin = cleanLocationText(exMatch[1]);
         }
 
         const destMatch = line.match(/\b(?:deliver(?:y|ing)?\s+(?:to|in|at)|tipping\s+(?:in|at)|destination[:\s]+)\s*([A-Za-z][A-Za-z0-9\s,.'-]{1,45}?)(?=\s+(?:on|next|this|please|do\s+you|$)|[.,;]|$)/i);
-        if (destMatch) {
+        if (destMatch && !proseDest) {
           proseDest = cleanLocationText(destMatch[1]);
         }
+      }
+
+      if (exBlockLines.length > 0) {
+        const blockOrig = extractCleanLocationFromAddressBlock(exBlockLines);
+        if (blockOrig) proseOrigin = blockOrig;
+      }
+      if (toBlockLines.length > 0) {
+        const blockDest = extractCleanLocationFromAddressBlock(toBlockLines);
+        if (blockDest) proseDest = blockDest;
       }
 
       const globalFlags = detectHazFlags(bodyWithoutSig + ' ' + subject);
@@ -1199,8 +1282,8 @@ function doPost(e) {
           selected: true,
           origin: proseOrigin,
           destination: proseDest,
-          collectionDate: proseColDate || currentDateHeading || '',
-          deliveryDate: proseDelDate || '',
+          collectionDate: repeatOverrideDate || proseColDate || currentDateHeading || '',
+          deliveryDate: repeatOverrideDate ? '' : (proseDelDate || ''),
           isHaz: globalFlags.isHaz,
           isLtdQty: globalFlags.isLtdQty,
           region: detectOriginRegion(proseOrigin)
@@ -1213,7 +1296,7 @@ function doPost(e) {
             selected: true,
             origin: hr.origin,
             destination: hr.destination,
-            collectionDate: proseColDate || currentDateHeading || '',
+            collectionDate: repeatOverrideDate || proseColDate || currentDateHeading || '',
             deliveryDate: '',
             isHaz: globalFlags.isHaz,
             isLtdQty: globalFlags.isLtdQty,
@@ -1236,7 +1319,7 @@ function doPost(e) {
               selected: true,
               origin: orig,
               destination: dest,
-              collectionDate: proseColDate || currentDateHeading || '',
+              collectionDate: repeatOverrideDate || proseColDate || currentDateHeading || '',
               deliveryDate: '',
               isHaz: globalFlags.isHaz,
               isLtdQty: globalFlags.isLtdQty,
@@ -1367,25 +1450,25 @@ function doPost(e) {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Loading From *</label>
-              <input type="text" value="${escapeHtml(item.origin)}" placeholder="e.g. Birmingham or Rotherham"
+              <input type="text" value="${escapeHtml(item.origin)}" placeholder="e.g. Ipswich IP1 5AN"
                      oninput="updateStagedField(${idx}, 'origin', this.value)"
                      class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
             </div>
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Delivery To *</label>
-              <input type="text" value="${escapeHtml(item.destination)}" placeholder="e.g. Meath/Dublin or Cavan"
+              <input type="text" value="${escapeHtml(item.destination)}" placeholder="e.g. Monkstown, Co. Cork"
                      oninput="updateStagedField(${idx}, 'destination', this.value)"
                      class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
             </div>
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Collection Date</label>
-              <input type="text" value="${escapeHtml(item.collectionDate)}" placeholder="e.g. Mon 30 Nov or 30/11"
+              <input type="text" value="${escapeHtml(item.collectionDate)}" placeholder="e.g. Tue 1 Dec 2026"
                      oninput="updateStagedField(${idx}, 'collectionDate', this.value)"
                      class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-blue-900 focus:ring-1 focus:ring-blue-500 outline-none" />
             </div>
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Delivery Date</label>
-              <input type="text" value="${escapeHtml(item.deliveryDate)}" placeholder="e.g. Wed 2 Dec (optional)"
+              <input type="text" value="${escapeHtml(item.deliveryDate)}" placeholder="e.g. Thu 3 Dec (optional)"
                      oninput="updateStagedField(${idx}, 'deliveryDate', this.value)"
                      class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
             </div>
@@ -1456,6 +1539,7 @@ function doPost(e) {
       });
 
       loads.unshift(...newRecords);
+      lastBoardSnapshot = JSON.stringify(loads);
       saveLocal();
       renderBoard();
       clearIntake();
@@ -1479,6 +1563,7 @@ function doPost(e) {
       const idx = loads.findIndex(l => String(l.id) === String(id));
       if (idx === -1) return;
       loads[idx].status = newStatus;
+      lastBoardSnapshot = JSON.stringify(loads);
       saveLocal();
       renderBoard();
       recheckStagedDuplicates();
@@ -1498,12 +1583,26 @@ function doPost(e) {
       }
     }
 
-    function deleteLoad(id) {
+    async function deleteLoad(id) {
       loads = loads.filter(l => String(l.id) !== String(id));
+      lastBoardSnapshot = JSON.stringify(loads);
       saveLocal();
       renderBoard();
       recheckStagedDuplicates();
-      showToast('Removed from local view');
+      showToast('Deleted from board & Google Sheet');
+
+      if (webhookUrl) {
+        try {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', id })
+          });
+        } catch (err) {
+          console.error('Delete sync error:', err);
+        }
+      }
     }
 
     async function refreshBoard() {
@@ -1537,7 +1636,6 @@ function doPost(e) {
       updateSortIcons();
       updateNextDayMapCounts();
 
-      // Count active signatures across the board to flag duplicate entries
       const sigCounts = {};
       loads.forEach(item => {
         if (item.status === 'Expired') return;
@@ -1729,6 +1827,35 @@ function doPost(e) {
     }
 
     // Built-in Samples
+    function loadSampleUniroad() {
+      const sample = `From: Gavin Behan <gavin@uniroadfreight.com>
+Subject: Re: [Bookings] Ipswich - 30/11 - (Ref: # 1034979)
+Date: Fri, 27 Nov 2026 12:23:25 +0000
+
+Hi all
+
+Could you cover another of these Tuesday?
+
+Thanks
+
+On Wed, 25 Nov 2026 at 13:09, Gavin Behan <gavin@uniroadfreight.com> wrote:
+> Can you arrange a collection of the following on Monday 30/11 pre 16:00 please?
+> Delivery Weds AM 02/12
+>
+> Ex. Brisko Metal Resources Limited
+>       Sproughton Road Industrial Estate
+>       Sproughton Road
+>       Ipswich IP1 5AN
+>
+> To: Martin Scaffolding Yard
+>      Raffeen Ballyfouloo
+>      Monkstown
+>      Co. Cork.`;
+      document.getElementById('rawEmailInput').value = sample;
+      const dups = parseEmailInput(sample);
+      showToast(dups > 0 ? `Loaded Uniroad reply sample (${dups} already on board)` : 'Loaded Uniroad reply-chain sample');
+    }
+
     function loadSamplePerennial() {
       const sample = `From: Owen McLoughlin <Owen.McLoughlin@perennialfreight.com>
 Subject: [Bookings] Rate Request Full loads ex Birmingham, Manchester, Uxbridge & Warrington to Meath/Dublin
@@ -1739,22 +1866,6 @@ Owen McLoughlin`;
       document.getElementById('rawEmailInput').value = sample;
       const dups = parseEmailInput(sample);
       showToast(dups > 0 ? `Loaded Perennial sample (${dups} already on board)` : 'Loaded Perennial Freight 4-origin sample');
-    }
-
-    function loadSampleSeabridge() {
-      const sample = `From: Thomas Reid <treid@seabridge.ie>
-Subject: [Bookings] Rotherham to Cavan
-Date: Thu, 26 Nov 2026 16:54:41 +0000
-
-Paula / Lee
-Can you advise the rate for 2027 for below
-This will be a yearly collection and approx. 70 loads of 700ml glass bottles.
-
-Collect from Rotherham, S60 1TZ
-Delivery to : Rakeevan, Co. Cavan A82H0X8`;
-      document.getElementById('rawEmailInput').value = sample;
-      const dups = parseEmailInput(sample);
-      showToast(dups > 0 ? `Loaded Seabridge sample (${dups} already on board)` : 'Loaded Seabridge sample');
     }
 
     function loadSampleDFDS() {
