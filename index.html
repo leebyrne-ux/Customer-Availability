@@ -100,7 +100,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 pb-4 border-b border-slate-100">
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">Customer *</label>
-            <input type="text" id="fieldCustomer" required placeholder="e.g. Uniroad Freight — Gavin Behan"
+            <input type="text" id="fieldCustomer" required placeholder="e.g. Ian - DSG"
                    oninput="recheckStagedDuplicates()"
                    class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
@@ -115,7 +115,7 @@
         <div class="flex items-center justify-between mb-2.5">
           <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Load Route & Dates</span>
           <button type="button" onclick="addEmptyStagedLoad()" class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
-            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Another Load
+            <span>+ Add Another Load</span>
           </button>
         </div>
 
@@ -125,8 +125,7 @@
 
         <button type="button" onclick="commitStagedLoads()"
                 class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-xl text-sm shadow-xs transition flex items-center justify-center gap-2">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i>
-          <span id="submitBtnLabel">Add Load to Team Board</span>
+          <span id="submitBtnLabel">+ Add Load to Team Board</span>
         </button>
       </div>
     </section>
@@ -149,19 +148,16 @@
         <div class="flex flex-wrap items-center gap-2.5">
           <button type="button" id="nextDayToggleBtn" onclick="toggleNextWorkingDayFilter()"
                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
-            <i data-lucide="filter" class="w-3.5 h-3.5"></i>
             <span>Show Next Working Day Only</span>
           </button>
 
           <button type="button" onclick="pushAndOpenAvailabilityMap('UK')"
                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition shadow-xs">
-            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
             <span>Push & Open UK Map (<span id="ukNextDayCount">0</span>)</span>
           </button>
 
           <button type="button" onclick="pushAndOpenAvailabilityMap('IRL')"
                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-xs">
-            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
             <span>Push & Open IRL Map (<span id="irlNextDayCount">0</span>)</span>
           </button>
         </div>
@@ -176,10 +172,10 @@
           </div>
           <div class="flex items-center gap-2.5">
             <button onclick="refreshBoard()" title="Refresh from Google Sheet" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sync
+              <span>Sync</span>
             </button>
             <button onclick="exportCSV()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition">
-              <i data-lucide="download" class="w-3.5 h-3.5"></i> Export CSV
+              <span>Export CSV</span>
             </button>
           </div>
         </div>
@@ -187,9 +183,8 @@
         <!-- Filters & Sort Bar -->
         <div class="flex flex-wrap items-center gap-3 mb-5">
           <div class="relative flex-1 min-w-[240px]">
-            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5"></i>
             <input type="text" id="searchInput" oninput="renderBoard()" placeholder="Search customer, loading from, delivery to, dates..."
-                   class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                   class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           <select id="sortSelect" onchange="handleSortSelect(this.value)" class="rounded-xl border border-slate-300 px-3.5 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
             <option value="collectionDate:asc" selected>Collection Date: Soonest First</option>
@@ -263,11 +258,10 @@
     <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden">
       <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
         <h3 class="font-semibold text-base flex items-center gap-2">
-          <i data-lucide="sheet" class="w-5 h-5 text-emerald-400"></i>
-          Google Sheet Web App Connection
+          <span>Google Sheet Web App Connection</span>
         </h3>
-        <button onclick="closeSetupModal()" class="text-slate-400 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
+        <button onclick="closeSetupModal()" class="text-slate-400 hover:text-white font-bold">
+          ✕
         </button>
       </div>
 
@@ -348,7 +342,6 @@ function doPost(e) {
 
   <!-- Toast Notification -->
   <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium hidden items-center gap-2 z-50">
-    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
     <span id="toastMsg">Saved!</span>
   </div>
 
@@ -374,12 +367,20 @@ function doPost(e) {
     let filterNextWorkingDayOnly = false;
     let lastBoardSnapshot = '';
 
+    function safeRefreshIcons() {
+      try {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
+      } catch (e) {}
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-      lucide.createIcons();
       updateSyncBadge();
       updateNextWorkingDayHeader();
       document.getElementById('webhookUrlInput').value = webhookUrl;
       clearIntake();
+      safeRefreshIcons();
       if (webhookUrl) {
         refreshBoard();
         setInterval(silentSync, 15000);
@@ -407,7 +408,6 @@ function doPost(e) {
       } catch (e) {}
     }
 
-    // --- Duplicate Signature & Detection Helpers ---
     function getLoadSignature(customer, origin, destination, collectionDate, offerDate) {
       const normCust = String(customer || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       const normOrig = cleanLocationText(origin).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -493,16 +493,15 @@ function doPost(e) {
       return str;
     }
 
-    // --- Next Working Day & UK/IRL Region Detection ---
     function getNextWorkingDay(refDate = new Date()) {
       const d = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate());
-      const day = d.getDay(); // 0=Sun, 5=Fri, 6=Sat
+      const day = d.getDay();
       if (day === 5) {
-        d.setDate(d.getDate() + 3); // Fri -> Mon
+        d.setDate(d.getDate() + 3);
       } else if (day === 6) {
-        d.setDate(d.getDate() + 2); // Sat -> Mon
+        d.setDate(d.getDate() + 2);
       } else {
-        d.setDate(d.getDate() + 1); // Sun-Thu -> Next Day
+        d.setDate(d.getDate() + 1);
       }
       return d;
     }
@@ -567,12 +566,11 @@ function doPost(e) {
       const btn = document.getElementById('nextDayToggleBtn');
       if (filterNextWorkingDayOnly) {
         btn.className = 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-blue-400 bg-blue-600 text-white transition shadow-xs';
-        btn.innerHTML = '<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i><span>Showing Next Working Day</span>';
+        btn.innerHTML = '<span>Showing Next Working Day</span>';
       } else {
         btn.className = 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200 transition';
-        btn.innerHTML = '<i data-lucide="filter" class="w-3.5 h-3.5"></i><span>Show Next Working Day Only</span>';
+        btn.innerHTML = '<span>Show Next Working Day Only</span>';
       }
-      lucide.createIcons();
       renderBoard();
     }
 
@@ -584,7 +582,6 @@ function doPost(e) {
       document.getElementById('irlNextDayCount').textContent = irlCount;
     }
 
-    // --- Direct Firebase Push to UK & All-Ireland Availability Maps ---
     async function pushAndOpenAvailabilityMap(region) {
       const nextDayLoads = loads.filter(l =>
         l.status === 'Available' &&
@@ -641,7 +638,6 @@ function doPost(e) {
       }
     }
 
-    // --- Location Cleaner ---
     function cleanLocationText(loc) {
       return String(loc || '')
         .replace(/^[:.\-\s]+/, '')
@@ -651,7 +647,6 @@ function doPost(e) {
         .trim();
     }
 
-    // --- Sorting Logic ---
     function toggleSort(field) {
       if (currentSort.field === field) {
         currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
@@ -767,7 +762,6 @@ function doPost(e) {
       });
     }
 
-    // --- Drag & Drop Listeners ---
     const dropZone = document.getElementById('dropZone');
     ['dragenter', 'dragover'].forEach(evt => {
       dropZone.addEventListener(evt, e => {
@@ -806,7 +800,6 @@ function doPost(e) {
       reader.readAsText(file);
     }
 
-    // --- MIME & Encoding Helpers ---
     function decodeQuotedPrintable(str) {
       if (!str) return '';
       let cleaned = str.replace(/=\r?\n/g, '');
@@ -978,16 +971,14 @@ function doPost(e) {
       for (const line of lines) {
         const trimmed = line.replace(/^>+\s*/, '').trim();
         if (/^_{5,}$/.test(trimmed)) break;
-        if (/^(many\s+thanks|kind\s+regards|best\s+regards|regards|thanks\s+and\s+regards)[,.!]?$/i.test(trimmed)) {
-          // Only break if not inside a quoted reply chain that continues below
-          continue;
-        }
-        if (/^(thomas\s+reid|owen\s+mcloughlin|robbie\s+morris|karl\s+byrne|priscilla\s+quinn|tony\s+cochrane|gavin\s+behan)$/i.test(trimmed)) continue;
-        if (/^(contracts\s+manager|operations\s+manager|transport\s+planner|freight\s+forwarder|business\s+development|sales\s*&\s*forwarding|freight\s+management\s+dept)/i.test(trimmed)) continue;
-        if (/^(perennial\s+freight|seabridge)/i.test(trimmed)) continue;
-        if (/^\*?\s*(?:introducing\s+our\s+new\s+website|all\s+business\s+is\s+transacted|of\s+the\s+iifa|the\s+quotation\s+does\s+not\s+include|company\s+registration\s+no|all\s+goods\s+are\s+carried|these\s+conditions\s+shall|directors;|registered\s+office;|confidentiality:)/i.test(trimmed)) continue;
+        if (/^(many\s+thanks|kind\s+regards|best\s+regards|regards|thanks\s+and\s+regards)[,.!]?$/i.test(trimmed)) continue;
+        if (/^(thomas\s+reid|owen\s+mcloughlin|robbie\s+morris|karl\s+byrne|priscilla\s+quinn|tony\s+cochrane|gavin\s+behan|paula)$/i.test(trimmed)) continue;
+        if (/^(customer\s+service|contracts\s+manager|operations\s+manager|transport\s+planner|freight\s+forwarder|business\s+development|sales\s*&\s*forwarding|freight\s+management\s+dept)/i.test(trimmed)) continue;
+        if (/^(perennial\s+freight|seabridge|goggins\s+transport)/i.test(trimmed)) continue;
+        if (/^\*?\s*(?:introducing\s+our\s+new\s+website|all\s+loads\s+subject\s+to|week\s+\d+\s+surcharges|all\s+business\s+is\s+transacted|of\s+the\s+iifa|the\s+quotation\s+does\s+not\s+include|company\s+registration\s+no|all\s+goods\s+are\s+carried|these\s+conditions\s+shall|directors;|registered\s+office;|confidentiality:)/i.test(trimmed)) continue;
+        if (/^(?:fsc|lss\/ets|dpc)\s+/i.test(trimmed)) continue;
         if (/^(?:phone|landline|mobile|tel|fax|mob|t|m|e|w|head\s+office)[\s:]+(\+?\d|00\d|www\.|[a-z0-9._%+-]+@)/i.test(trimmed)) continue;
-        if (/unit\s+86\/90|baldoyle|rosemount\s+business\s+park|swords\s+road|grand\s+canal|treasury\s+buil|westbank\s+road|belfast,\s*bt|taghmon/i.test(trimmed)) continue;
+        if (/unit\s+86\/90|baldoyle|rosemount\s+business\s+park|swords\s+road|grand\s+canal|treasury\s+buil|westbank\s+road|belfast,\s*bt|taghmon|cahervoley/i.test(trimmed)) continue;
         kept.push(line);
       }
       return kept.join('\n').trim();
@@ -1030,7 +1021,6 @@ function doPost(e) {
       };
     }
 
-    // Extract town/postcode from a multi-line address block (e.g., "Ex. Brisko Metal... / Ipswich IP1 5AN" -> "Ipswich IP1 5AN")
     function extractCleanLocationFromAddressBlock(blockLines) {
       const cleanedLines = blockLines
         .map(l => cleanLocationText(l))
@@ -1039,18 +1029,15 @@ function doPost(e) {
       if (cleanedLines.length === 0) return '';
       if (cleanedLines.length === 1) return cleanedLines[0];
 
-      // Look from bottom up for postcode or county/town line
       const lastLine = cleanedLines[cleanedLines.length - 1];
       const prevLine = cleanedLines[cleanedLines.length - 2];
 
-      // If last line is "Co. Cork" and previous line is "Monkstown", combine as "Monkstown, Co. Cork"
       if (/^co\.?\s+/i.test(lastLine) && prevLine) {
         return `${prevLine}, ${lastLine}`;
       }
       return lastLine;
     }
 
-    // --- Main Email & Multi-Format Load Parser ---
     function parseEmailInput(raw) {
       if (!raw || !raw.trim()) return 0;
 
@@ -1120,7 +1107,6 @@ function doPost(e) {
       }
 
       const bodyWithoutSig = stripSignatureAndDisclaimer(cleanText);
-      // Strip leading quote markers (`> `) so quoted booking blocks parse identically to fresh emails
       const rawLines = bodyWithoutSig.split(/\r?\n/).map(l => l.replace(/^(?:>\s*)+/, '').replace(/\u00A0/g, ' ').trim());
 
       const extractedItems = [];
@@ -1132,21 +1118,19 @@ function doPost(e) {
       let proseDelDate = '';
       let repeatOverrideDate = '';
 
-      // Detect "another of these Tuesday" / "same again Wednesday" in the top message
       const topSection = rawLines.slice(0, 12).join(' ');
       const repeatMatch = topSection.match(/\b(?:another\s+of\s+these|same\s+again|repeat\s+(?:this|load)|extra\s+load)\b[^.?\n]*?\b((?:next|this)?\s*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|tomorrow|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\b/i);
       if (repeatMatch) {
         repeatOverrideDate = resolveRelativeDate(repeatMatch[1], rawDate);
       }
 
-      // Multi-line address block collector for "Ex. Company / Street / Town Postcode" and "To: Company / Street / Town"
       let activeAddrBlock = null;
       let exBlockLines = [];
       let toBlockLines = [];
 
       const dateHeadingRegex = /^(?:(?:mon|tue|tues|wed|thu|thurs|fri|sat|sun)[a-z]*\s+)?\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*(?:\s+\d{2,4})?$|^\d{1,2}[\/\-.]\d{1,2}(?:[\/\-.]\d{2,4})?$/i;
-      const inlineRouteWithScheduleRegex = /^([A-Za-z0-9][A-Za-z0-9\s,.'/-]{1,35}?)\s*(?:–|—|-|->|→|to)\s*([A-Za-z0-9][A-Za-z0-9\s,.'/-]{1,35}?)\s+(collect(?:ing|ion)?\b.+)$/i;
-      const routeLineRegex = /^([A-Za-z][A-Za-z0-9\s,.'/-]{1,40}?)\s*(?:–|—|-|->|→|to)\s*([A-Za-z][A-Za-z0-9\s,.'/-]{1,40}?)(?:\s*\(([^)]+)\))?$/i;
+      const inlineRouteWithScheduleRegex = /^([A-Za-z0-9][A-Za-z0-9\s,.'/-]{1,35}?)\s*(?:\s+(?:–|—|-|->|→|to)\s+|[–—→]|->)\s*([A-Za-z0-9][A-Za-z0-9\s,.'/-]{1,35}?)\s+(collect(?:ing|ion)?\b.+)$/i;
+      const routeLineRegex = /^([A-Za-z][A-Za-z0-9\s,.'/-]{1,40}?)\s*(?:\s+(?:–|—|-|->|→|to)\s+|[–—→]|->)\s*([A-Za-z][A-Za-z0-9\s,.'/-]{1,40}?)(?:\s*\(([^)]+)\))?$/i;
 
       for (let idx = 0; idx < rawLines.length; idx++) {
         const line = rawLines[idx];
@@ -1156,7 +1140,6 @@ function doPost(e) {
           continue;
         }
 
-        // Handle multi-line Ex. / To: address blocks
         if (/^ex[.:]\s+/i.test(line)) {
           activeAddrBlock = 'ex';
           exBlockLines = [line];
@@ -1178,7 +1161,7 @@ function doPost(e) {
         }
 
         if (/^(hi|hello|dear|good\s+(morning|afternoon)|thanks\s+gavin|booking\s+confirmed)\b/i.test(line)) continue;
-        if (/^(could\s+you\s+provide|we\s+have\s+these\s+loads|do\s+you\s+have\s+availability|can\s+you\s+(?:please\s+)?(?:advise|quote|revert)|i\s+have\s+\d+\s+loads)/i.test(line)) continue;
+        if (/^(could\s+you\s+provide|we\s+have\s+these\s+loads|do\s+you\s+have\s+availability|can\s+you\s+(?:please\s+)?(?:advise|quote|revert|arrange)|i\s+have\s+\d+\s+loads)/i.test(line)) continue;
         if (/^(loading\s+from|delivery\s+to|rate)$/i.test(line)) continue;
 
         if (dateHeadingRegex.test(line)) {
@@ -1244,7 +1227,6 @@ function doPost(e) {
           continue;
         }
 
-        // Prose delivery date (e.g., "Delivery Weds AM 02/12")
         const proseDelMatch = line.match(/^deliver(?:y|ing)?\s+(.+)$/i);
         if (proseDelMatch && !proseDelDate && !repeatOverrideDate) {
           proseDelDate = proseDelMatch[1].trim();
@@ -1410,15 +1392,16 @@ function doPost(e) {
       if (activeCount > 0) {
         badge.textContent = `${activeCount} Load${activeCount > 1 ? 's' : ''} Ready`;
         badge.classList.remove('hidden');
-        btnLabel.textContent = `Add ${activeCount} Load${activeCount > 1 ? 's' : ''} to Team Board`;
+        btnLabel.textContent = `+ Add ${activeCount} Load${activeCount > 1 ? 's' : ''} to Team Board`;
       } else {
         badge.classList.add('hidden');
-        btnLabel.textContent = 'Add Load to Team Board';
+        btnLabel.textContent = '+ Add Load to Team Board';
       }
     }
 
     function renderStagedLoads() {
       const container = document.getElementById('stagedLoadsContainer');
+      if (!container) return;
       container.innerHTML = stagedLoads.map((item, idx) => {
         const reg = item.region || detectOriginRegion(item.origin);
         const cardStyle = item.isDuplicate
@@ -1438,12 +1421,12 @@ function doPost(e) {
               </span>
               ${item.isDuplicate ? `
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                  <i data-lucide="alert-triangle" class="w-3 h-3"></i> Already on Board
+                  Already on Board
                 </span>` : ''}
             </label>
             ${stagedLoads.length > 1 ? `
-              <button type="button" onclick="removeStagedLoad(${idx})" title="Remove offer" class="text-slate-400 hover:text-rose-600 shrink-0">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <button type="button" onclick="removeStagedLoad(${idx})" title="Remove offer" class="text-slate-400 hover:text-rose-600 text-xs font-bold px-1.5">
+                ✕
               </button>` : ''}
           </div>
 
@@ -1474,7 +1457,6 @@ function doPost(e) {
             </div>
           </div>
 
-          <!-- HAZ & Ltd Qty Tick Boxes -->
           <div class="flex items-center gap-5 mt-3 pt-2.5 border-t border-slate-200/70">
             <label class="inline-flex items-center gap-2 text-xs font-semibold text-rose-700 cursor-pointer select-none">
               <input type="checkbox" ${item.isHaz ? 'checked' : ''}
@@ -1493,7 +1475,7 @@ function doPost(e) {
         </div>
       `}).join('');
 
-      lucide.createIcons();
+      safeRefreshIcons();
       updateStagedSummary();
     }
 
@@ -1504,7 +1486,6 @@ function doPost(e) {
       resetStagedLoads();
     }
 
-    // --- Board Actions & Google Sheets Sync ---
     async function commitStagedLoads() {
       const customer = document.getElementById('fieldCustomer').value.trim();
       const offerDate = document.getElementById('fieldOfferDate').value.trim() || getCurrentFormattedTimestamp();
@@ -1585,25 +1566,11 @@ function doPost(e) {
 
     async function deleteLoad(id) {
       loads = loads.filter(l => String(l.id) !== String(id));
+      lastBoardSnapshot = JSON.stringify(loads);
       saveLocal();
       renderBoard();
       recheckStagedDuplicates();
-      showToast('Deleting from sheet...');
-
-      if (webhookUrl) {
-        try {
-          await fetch(webhookUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'delete', id })
-          });
-          showToast('Deleted from team Google Sheet');
-        } catch (err) {
-          console.error('Delete sync error:', err);
-        }
-      }
-    }
+      showToast('Deleted from board & Google Sheet');
 
       if (webhookUrl) {
         try {
@@ -1753,15 +1720,15 @@ function doPost(e) {
                   <button onclick="updateStatus('${l.id}', 'Available')" class="px-2.5 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-lg text-xs font-medium transition">
                     Reopen
                   </button>`}
-                <button onclick="deleteLoad('${l.id}')" title="Delete" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
-                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                <button onclick="deleteLoad('${l.id}')" title="Delete" class="px-2 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-bold transition">
+                  ✕
                 </button>
               </div>
             </td>
           </tr>`;
       }).join('');
 
-      lucide.createIcons();
+      safeRefreshIcons();
     }
 
     function exportCSV() {
@@ -1796,7 +1763,6 @@ function doPost(e) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(loads));
     }
 
-    // Modal & Helpers
     function openSetupModal() {
       const m = document.getElementById('setupModal');
       m.classList.remove('hidden');
@@ -1840,7 +1806,6 @@ function doPost(e) {
       return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
     }
 
-    // Built-in Samples
     function loadSampleUniroad() {
       const sample = `From: Gavin Behan <gavin@uniroadfreight.com>
 Subject: Re: [Bookings] Ipswich - 30/11 - (Ref: # 1034979)
