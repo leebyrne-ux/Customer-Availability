@@ -270,7 +270,7 @@
 
       <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto text-sm text-slate-600">
         <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900">
-          <strong>Important:</strong> Make sure your Apps Script Web App deployment has <strong>Who has access</strong> set to <strong>Anyone</strong> (not just <em>Anyone within gogginstransport.ie</em>) so GitHub Pages can read and write rows without a login block. Also ensure your <code>Code.gs</code> matches the 11-column script below:
+          <strong>Important:</strong> Make sure your Apps Script Web App deployment has <strong>Who has access</strong> set to <strong>Anyone</strong> so GitHub Pages can read and write rows without a login block. Also ensure your <code>Code.gs</code> matches the 11-column script below:
         </div>
 
         <div class="relative">
@@ -289,8 +289,8 @@
     destination: r[4],
     collectionDate: r[5],
     deliveryDate: r[6],
-    isHaz: Boolean(r[7]),
-    isLtdQty: Boolean(r[8]),
+    isHaz: r[7] === 'YES' || r[7] === true,
+    isLtdQty: r[8] === 'YES' || r[8] === true,
     status: r[9] || 'Available',
     region: r[10] || ''
   }));
@@ -362,6 +362,7 @@ function doPost(e) {
     let stagedLoads = [];
     let currentSort = { field: 'collectionDate', dir: 'asc' };
     let filterNextWorkingDayOnly = false;
+    let lastBoardSnapshot = '';
 
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
@@ -370,31 +371,30 @@ function doPost(e) {
       document.getElementById('webhookUrlInput').value = webhookUrl;
       clearIntake();
       if (webhookUrl) {
-  refreshBoard();
-  setInterval(silentSync, 15000);
-} else {
-  renderBoard();
-}
-
-let lastBoardSnapshot = '';
-async function silentSync() 
-  if (!webhookUrl) return;
-  try {
-    const res = await fetch(`${webhookUrl}?t=${Date.now()}`);
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      const incoming = data.reverse();
-      const snap = JSON.stringify(incoming);
-      if (snap !== lastBoardSnapshot) {
-        lastBoardSnapshot = snap;
-        loads = incoming;
-        saveLocal();
+        refreshBoard();
+        setInterval(silentSync, 15000);
+      } else {
         renderBoard();
       }
-    }
-  } catch (e) {}
-}}
     });
+
+    async function silentSync() {
+      if (!webhookUrl) return;
+      try {
+        const res = await fetch(`${webhookUrl}?t=${Date.now()}`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const incoming = data.reverse();
+          const snap = JSON.stringify(incoming);
+          if (snap !== lastBoardSnapshot) {
+            lastBoardSnapshot = snap;
+            loads = incoming;
+            saveLocal();
+            renderBoard();
+          }
+        }
+      } catch (e) {}
+    }
 
     function getCurrentFormattedTimestamp() {
       const now = new Date();
@@ -524,7 +524,6 @@ async function silentSync()
           ? existingLoadsStr.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean)
           : [];
 
-        // Format each load for your map parser (e.g., "Lutterworth", "DE55 Haz", "Galway", "X91 PX5V Haz")
         const newEntries = nextDayLoads.map(l => {
           const loc = cleanLocationText(l.origin);
           return l.isHaz ? `${loc} Haz` : loc;
@@ -1368,10 +1367,11 @@ async function silentSync()
       }
       try {
         showToast('Syncing with Google Sheet...');
-        const res = await fetch(webhookUrl);
+        const res = await fetch(`${webhookUrl}?t=${Date.now()}`);
         const data = await res.json();
         if (Array.isArray(data)) {
           loads = data.reverse();
+          lastBoardSnapshot = JSON.stringify(loads);
           saveLocal();
           renderBoard();
           showToast('Synced with team Google Sheet!');
